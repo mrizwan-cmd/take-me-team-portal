@@ -32,8 +32,8 @@ export default function EmployeePortal(props: EmployeeProps) {
     case "Knowledge": return <KnowledgePage {...props} />;
     case "Documents": return <DocumentsPage {...props} />;
     case "Chat": return <ChatPage {...props} />;
-    case "Leave & shifts": return <LeaveShiftsPage {...props} />;
-    case "Operations": return <OperationsPage {...props} />;
+    case "Leave":
+    case "Leave & shifts": return <LeavePage {...props} />;
     default: return <HomePage {...props} />;
   }
 }
@@ -53,7 +53,7 @@ function HomePage({ state, updateState, navigate, notify, openCreate, openNotifi
   const todayEvents = state.events.filter(event => event.date === todayKey);
   const greeting = now.getHours() < 12 ? "Good morning" : now.getHours() < 18 ? "Good afternoon" : "Good evening";
   const dateHeading = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" }).format(now).toUpperCase();
-  const widgetNames: Record<string, string> = { approvals: "Approvals", calendar: "Today’s calendar", tasks: "Tasks", status: "Service status", news: "Company news", quickLinks: "Quick links" };
+  const widgetNames: Record<string, string> = { approvals: "Approvals", calendar: "Today’s calendar", tasks: "Tasks", news: "Company news", quickLinks: "Quick links" };
   const moveWidget = (id: string, direction: number) => updateState(current => {
     const widgets = [...current.widgets]; const index = widgets.indexOf(id); const target = index + direction;
     if (index < 0 || target < 0 || target >= widgets.length) return current;
@@ -66,7 +66,7 @@ function HomePage({ state, updateState, navigate, notify, openCreate, openNotifi
       <PageIntro
         eyebrow={dateHeading}
         title={`${greeting}, ${state.profile.name.split(" ")[0]}.`}
-        text="Your meetings, approvals and operations updates are ready."
+        text="Your meetings, approvals and project updates are ready."
         secondary={<button className="secondary" onClick={() => setCustomise(true)}>Customise home</button>}
         action={<button className="primary" onClick={() => openCreate()}>＋ Quick create</button>}
       />
@@ -89,7 +89,7 @@ function HomePage({ state, updateState, navigate, notify, openCreate, openNotifi
         </button>
       </section>
       <div className="dashboard-grid">
-        {state.widgets.map(id => <HomeWidget key={id} id={id} state={state} navigate={navigate} notify={notify} openCreate={openCreate} todayKey={todayKey} />)}
+        {state.widgets.filter(id => id !== "status").map(id => <HomeWidget key={id} id={id} state={state} navigate={navigate} notify={notify} openCreate={openCreate} todayKey={todayKey} />)}
       </div>
       {customise && (
         <Modal title="Customise My Day" eyebrow="PERSONALISE" close={() => setCustomise(false)} className="medium-modal">
@@ -160,21 +160,6 @@ function HomeWidget({ id, state, navigate, notify, openCreate, todayKey }: { id:
       ))}
     </section>
   );
-  if (id === "status") return (
-    <section className="card widget">
-      <CardHead title="Service status" action="Details" onClick={() => navigate("Operations")} />
-      {state.services.map(service => {
-        const status = service.name === "Google Workspace" && !state.adminSettings.googleConnected ? "Not connected" : service.status;
-        return (
-          <button className="service-mini" key={service.id} onClick={() => navigate("Operations")}>
-            <i className={status === "Operational" ? "ok" : "warn"} />
-            <span>{service.name}</span>
-            <small>{status}</small>
-          </button>
-        );
-      })}
-    </section>
-  );
   if (id === "news") return (
     <section className="card widget span-two news-widget">
       <div className="news-art"><span>PEOPLE</span></div>
@@ -191,7 +176,7 @@ function HomeWidget({ id, state, navigate, notify, openCreate, todayKey }: { id:
       <CardHead title="Quick links" action="Manage" onClick={() => notify("Quick links can be managed in Admin → Content")} />
       <div className="quick-grid">
         {[
-          ["Request time off", "Leave & shifts"],
+          ["Request time off", "Leave"],
           ["Submit an expense", "Requests"],
           ["Book a meeting", "Calendar"],
           ["IT help desk", "Requests"],
@@ -856,7 +841,7 @@ function DocumentsPage({ state, updateState, notify }: EmployeeProps) {
       <PageIntro
         eyebrow="FILES"
         title="Documents"
-        text="Company Drive files, portal uploads, templates and operational documents in one library."
+        text="Company Drive files, portal uploads, templates and guides in one library."
         secondary={<button className="secondary" onClick={browseDrive}>{state.adminSettings.googleConnected ? "Browse Google Drive" : "Connect Google Drive"}</button>}
         action={(
           <>
@@ -1041,15 +1026,14 @@ function ChatPage({ state, updateState, openCreate, notify, realtime }: Employee
   );
 }
 
-function LeaveShiftsPage({ state, updateState, openCreate, notify }: EmployeeProps) {
-  const [tab, setTab] = useState("Leave");
-  const acceptShift = (id: string) => updateState(current => ({ ...current, shifts: current.shifts.map(item => item.id === id ? { ...item, status: "Confirmed" } : item) }));
+function LeavePage({ state, openCreate }: EmployeeProps) {
+  const [tab, setTab] = useState("Leave balance & requests");
 
   return (
     <div className="page">
-      <PageIntro eyebrow="AVAILABILITY" title="Leave and shifts" text="Manage time away, team availability, rota cover and shift changes." action={<button className="primary" onClick={() => openCreate(tab === "Leave" ? "leave" : "shift")}>＋ {tab === "Leave" ? "Request leave" : "Add availability"}</button>} />
-      <div className="segmented">{["Leave", "Rota", "Team calendar"].map(value => <button className={tab === value ? "active" : ""} key={value} onClick={() => setTab(value)}>{value}</button>)}</div>
-      {tab === "Leave" && (
+      <PageIntro eyebrow="TIME OFF" title="Leave & time off" text="Manage time away, leave balances and team holiday coverage." action={<button className="primary" onClick={() => openCreate("leave")}>＋ Request leave</button>} />
+      <div className="segmented">{["Leave balance & requests", "Team absence calendar"].map(value => <button className={tab === value ? "active" : ""} key={value} onClick={() => setTab(value)}>{value}</button>)}</div>
+      {tab === "Leave balance & requests" && (
         <>
           <div className="balance-grid">
             {[["21", "Days remaining"], ["5", "Booked"], ["2", "Work from home"], ["0", "Sickness days"]].map(item => (
@@ -1079,141 +1063,13 @@ function LeaveShiftsPage({ state, updateState, openCreate, notify }: EmployeePro
           </section>
         </>
       )}
-      {tab === "Rota" && (
-        <div className="shift-grid">
-          {state.shifts.map(item => (
-            <article className="card shift-card" key={item.id}>
-              <time>{item.date}</time>
-              <h3>{item.team}</h3>
-              <p>{item.time} · {item.location}</p>
-              <StatusPill value={item.status} />
-              <footer>
-                {item.status === "Available" && <button className="primary small" onClick={() => { acceptShift(item.id); notify("Shift accepted"); }}>Accept shift</button>}
-                {item.status === "Needs cover" && <button className="secondary small" onClick={() => notify("Cover requests are not connected yet; nothing was submitted")}>Offer cover</button>}
-                {item.status === "Confirmed" && <button className="secondary small" onClick={() => notify("Shift-change workflows are not connected yet; nothing was submitted")}>Request change</button>}
-              </footer>
-            </article>
-          ))}
-        </div>
-      )}
-      {tab === "Team calendar" && (
+      {tab === "Team absence calendar" && (
         <section className="card absence-calendar">
           <div className="absence-days">{["Mon 10", "Tue 11", "Wed 12", "Thu 13", "Fri 14"].map(day => <b key={day}>{day}</b>)}</div>
           <div className="absence-person"><span>Muneeb Rizwan</span><i style={{ gridColumn: "4 / 6" }}>Annual leave</i></div>
           <div className="absence-person"><span>Sam Wilson</span><i style={{ gridColumn: "5" }}>WFH</i></div>
           <div className="absence-person"><span>Sofia Khan</span><i style={{ gridColumn: "2 / 4" }}>Training</i></div>
         </section>
-      )}
-    </div>
-  );
-}
-
-function OperationsPage({ state, updateState, openCreate, notify }: EmployeeProps) {
-  const [tab, setTab] = useState("Drivers & vehicles");
-  const readHandover = (id: string) => updateState(current => ({ ...current, handovers: current.handovers.map(item => item.id === id ? { ...item, read: true } : item) }));
-
-  return (
-    <div className="page">
-      <PageIntro eyebrow="TAKE ME OPERATIONS" title="Operations centre" text="Driver compliance, vehicles, incidents, handovers and internal service status." action={tab === "Incidents" || tab === "Handover" ? <button className="primary" onClick={() => openCreate(tab === "Incidents" ? "incident" : "handover")}>＋ New {tab === "Incidents" ? "incident" : "handover"}</button> : undefined} />
-      <div className="segmented operation-tabs">
-        {["Drivers & vehicles", "Incidents", "Handover", "Service status"].map(value => <button className={tab === value ? "active" : ""} key={value} onClick={() => setTab(value)}>{value}</button>)}
-      </div>
-      {tab === "Drivers & vehicles" && (
-        <div className="operations-columns">
-          <section className="card data-card">
-            <div className="card-head padded">
-              <h3>Driver records</h3>
-              <button onClick={() => notify("Driver expiry report opened")}>Expiry report →</button>
-            </div>
-            <div className="data-head driver-head">
-              <span>Driver</span>
-              <span>Vehicle</span>
-              <span>Licence</span>
-              <span>Status</span>
-            </div>
-            {state.drivers.map(item => (
-              <button className="data-row driver-row" key={item.id} onClick={() => notify(`${item.name} record opened`)}>
-                <span><b>{item.name}</b><small>{item.id} · Expires {item.expiry}</small></span>
-                <span data-label="Vehicle">{item.vehicle}</span>
-                <span className="mobile-field" data-label="Licence"><StatusPill value={item.licence} /></span>
-                <span className="mobile-field" data-label="Status"><StatusPill value={item.status} /></span>
-              </button>
-            ))}
-          </section>
-          <section className="card data-card">
-            <div className="card-head padded">
-              <h3>Vehicles</h3>
-              <button onClick={() => notify("Maintenance calendar opened")}>Maintenance →</button>
-            </div>
-            <div className="data-head vehicle-head">
-              <span>Vehicle</span>
-              <span>Driver</span>
-              <span>Next service</span>
-              <span>Status</span>
-            </div>
-            {state.vehicles.map(item => (
-              <button className="data-row vehicle-row" key={item.id} onClick={() => notify(`${item.registration} record opened`)}>
-                <span><b>{item.registration}</b><small>{item.model}</small></span>
-                <span data-label="Driver">{item.driver}</span>
-                <span data-label="Next service">{item.service}</span>
-                <span className="mobile-field" data-label="Status"><StatusPill value={item.status} /></span>
-              </button>
-            ))}
-          </section>
-        </div>
-      )}
-      {tab === "Incidents" && (
-        <section className="card data-card">
-          <div className="data-head incident-head">
-            <span>Incident</span>
-            <span>Category</span>
-            <span>Owner</span>
-            <span>Reported</span>
-            <span>Status</span>
-          </div>
-          {state.incidents.map(item => (
-            <button className="data-row incident-row" key={item.id} onClick={() => notify(`${item.id} investigation opened`)}>
-              <span><b>{item.title}{item.confidential && " · Confidential"}</b><small>{item.id}</small></span>
-              <span data-label="Category">{item.category}</span>
-              <span data-label="Owner">{item.owner}</span>
-              <span data-label="Reported">{item.reported}</span>
-              <span className="mobile-field" data-label="Status"><StatusPill value={item.status} /></span>
-            </button>
-          ))}
-        </section>
-      )}
-      {tab === "Handover" && (
-        <div className="handover-list">
-          {state.handovers.map(item => (
-            <article className={`card handover-card ${item.read ? "read" : ""}`} key={item.id}>
-              <header>
-                <div><StatusPill value={item.priority} /><b>{item.shift}</b></div>
-                <small>{item.author}</small>
-              </header>
-              <p>{item.note}</p>
-              <footer>
-                <span>{item.read ? "Read" : "Needs acknowledgement"}</span>
-                {!item.read && <button className="primary small" onClick={() => { readHandover(item.id); notify("Handover acknowledged"); }}>Mark as read</button>}
-              </footer>
-            </article>
-          ))}
-        </div>
-      )}
-      {tab === "Service status" && (
-        <div className="status-grid">
-          {state.services.map(item => {
-            const status = item.name === "Google Workspace" && !state.adminSettings.googleConnected ? "Not connected" : item.status;
-            return (
-              <article className="card status-card" key={item.id}>
-                <header><i className={status === "Operational" ? "ok" : "warn"} /><StatusPill value={status} /></header>
-                <h3>{item.name}</h3>
-                <p>{item.name === "Google Workspace" && !state.adminSettings.googleConnected ? "An administrator must configure OAuth before employees can connect Calendar and Drive." : item.note}</p>
-                <small>Updated {item.updated}</small>
-                <button className="text-button" onClick={() => notify(`${item.name} update history opened`)}>View history →</button>
-              </article>
-            );
-          })}
-        </div>
       )}
     </div>
   );

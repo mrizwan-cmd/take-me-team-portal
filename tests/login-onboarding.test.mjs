@@ -55,7 +55,7 @@ test("first-time onboarding is saved and remains available from Help", async () 
   assert.match(portal, /<OnboardingGuide/u);
   assert.match(portal, /<HelpCentre/u);
   const help = await read("app/onboarding.tsx");
-  for (const step of ["Welcome", "Daily work", "Projects", "Google", "Requests", "People & info", "Work life"]) assert.match(help, new RegExp(`short: "${step}"`, "u"));
-  for (const topic of ["Calendar and Meet", "Drive and documents", "Requests and approvals", "Chat and conversations", "Leave, shifts and rota", "Security and signing out"]) assert.match(help, new RegExp(topic, "u"));
+  for (const step of ["Welcome", "Daily work", "Projects", "Google", "Requests", "People & info", "Time off & help"]) assert.match(help, new RegExp(`short: "${step}"`, "u"));
+  for (const topic of ["Calendar and Meet", "Drive and documents", "Requests and approvals", "Chat and conversations", "Leave and time off", "Security and signing out"]) assert.match(help, new RegExp(topic, "u"));
   assert.match(help, /Start guided introduction/u);
 });

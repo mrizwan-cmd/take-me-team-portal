@@ -70,7 +70,7 @@ export default function LoginScreen({ offline = false }: { offline?: boolean }) 
         <div className="login-promise">
           <p>ONE PLACE FOR THE WHOLE TEAM</p>
           <h1>Everything employees need, ready from day one.</h1>
-          <p>Plan projects, manage shifts, submit requests, meet with Google Calendar and find company knowledge from any device.</p>
+          <p>Plan projects, request time off, submit requests, meet with Google Calendar and find company knowledge from any device.</p>
         </div>
         <div className="login-feature-grid">
           {[

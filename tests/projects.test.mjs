@@ -10,7 +10,7 @@ test("projects are a first-class employee and administrator module", async () =>
     read("app/employee-portal.tsx"),
     read("app/admin-portal.tsx"),
   ]);
-  assert.match(shell, /\["Projects",\s*"▦",\s*"projects"\]/u);
+  assert.match(shell, /\["Projects",\s*"projects"\]/u);
   assert.match(employee, /case "Projects"/u);
   assert.match(admin, /Project management/u);
   assert.match(admin, /projectGoogleCalendar/u);

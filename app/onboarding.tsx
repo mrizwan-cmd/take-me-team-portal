@@ -12,7 +12,7 @@ const tourSteps = [
     title: "Welcome to your Take Me workspace",
     intro: "This portal brings daily work, company information and Google Workspace tools into one secure place.",
     points: [
-      ["Start from Home", "My Day shows meetings, tasks, approvals, company news and service updates."],
+      ["Start from Home", "My Day shows meetings, tasks, approvals, company news and updates."],
       ["Use the left menu", "Every employee tool is grouped in one consistent navigation."],
       ["Search from anywhere", "Choose the search bar or press Ctrl K to find pages, people, documents and commands."],
       ["Use it on your phone", "The bottom bar keeps Home, Projects, Create and Chat within easy reach."]
@@ -26,7 +26,7 @@ const tourSteps = [
     title: "Handle everyday work quickly",
     intro: "Create common work without hunting through menus, then follow progress from Home.",
     points: [
-      ["Choose Create", "Start a request, meeting, conversation, task, leave request, shift update, incident or handover."],
+      ["Choose Create", "Start a request, meeting, conversation, task or leave request."],
       ["Watch My Day", "Home brings urgent items and upcoming work together."],
       ["Use Action inbox", "Managers and approvers can decide purchase orders, leave and other requests."],
       ["Manage notifications", "Open the bell icon to read, snooze or jump directly to an update."]
@@ -40,7 +40,7 @@ const tourSteps = [
     title: "Plan and deliver projects",
     intro: "Projects provides visual boards for team delivery, from an initial idea through completion.",
     points: [
-      ["Open or create a board", "Start blank or use a Take Me template for projects, campaigns, operations or onboarding."],
+      ["Open or create a board", "Start blank or use a Take Me template for projects, campaigns or onboarding."],
       ["Move cards through lists", "Drag cards on desktop or change the List field from a phone."],
       ["Add working detail", "Assign members, labels, dates, priorities, checklists, comments, files and custom fields."],
       ["Change the view", "Use Board, Table, Calendar, Timeline, Dashboard and Activity views for different questions."],
@@ -93,18 +93,17 @@ const tourSteps = [
   },
   {
     icon: "leave",
-    short: "Work life",
-    title: "Manage work life and get help",
-    intro: "Finish setup with the tools employees use for schedules, mobile access and support.",
+    short: "Time off & help",
+    title: "Manage time off and get help",
+    intro: "Finish setup with the tools employees use for holiday schedules, mobile access and support.",
     points: [
-      ["Leave & shifts", "Check balances, request leave, offer availability and follow rota changes."],
-      ["Operations", "Drivers and operations teams can review vehicles, incidents, handovers and service status."],
+      ["Leave & time off", "Check holiday balances, request time away and view team absence."],
       ["Install the portal", "Add it to an Android or iPhone Home Screen for an app-like experience."],
       ["Open Help anytime", "The question-mark button contains detailed guides for every area and can restart this tour."],
       ["Keep your account secure", "Never share access. Sign out on shared devices and report unexpected account activity to IT."]
     ],
     tip: "You can change dark mode, text size, contrast, motion and alerts under Profile and preferences.",
-    page: "Leave & shifts"
+    page: "Leave"
   },
 ];
 
@@ -120,63 +119,68 @@ export function OnboardingGuide({ state, updateState, close, navigate, notify }:
 
   return (
     <div className="onboarding-backdrop" role="presentation">
-      <section className="onboarding-dialog" role="dialog" aria-modal="true" aria-label="First-time portal guide">
-        <aside className="onboarding-side">
-          <p className="eyebrow">FIRST-TIME GUIDE</p>
-          <h2>Learn the portal</h2>
-          <p>Seven short steps cover the complete employee experience.</p>
-          <nav className="onboarding-progress" aria-label="Onboarding steps">
-            {tourSteps.map((tour, index) => (
-              <button key={tour.short} className={index === step ? "active" : index < step ? "complete" : ""} onClick={() => move(index)}>
-                <i>{index < step ? <SvgIcon name="check" size={12} /> : index + 1}</i>
-                {tour.short}
-              </button>
-            ))}
-          </nav>
-          <small>Your current step is saved. Choose Continue later and return from Help whenever you want.</small>
-        </aside>
-        <div className="onboarding-main">
-          <header>
-            <i className="onboarding-icon">
-              {item.icon === "google" ? <GoogleGLogo size={28} /> : <SvgIcon name={item.icon} size={28} />}
-            </i>
-            <div>
-              <p className="eyebrow">STEP {step + 1} OF {tourSteps.length}</p>
-              <h1>{item.title}</h1>
-              <p>{item.intro}</p>
-            </div>
-            <button className="onboarding-close" aria-label="Continue onboarding later" onClick={close}>×</button>
-          </header>
-          <div className="onboarding-steps">
-            {item.points.map((point, index) => (
-              <article key={point[0]}>
-                <i>{index + 1}</i>
-                <span><b>{point[0]}</b><small>{point[1]}</small></span>
-              </article>
-            ))}
+      <section className="modal onboarding-modal" role="dialog" aria-modal="true" aria-label="Portal introduction">
+        <header className="onboarding-head">
+          <div className="onboarding-lead">
+            <span className="onboarding-badge">Step {step + 1} of {tourSteps.length}</span>
+            <h2>{item.title}</h2>
+            <p>{item.intro}</p>
           </div>
-          <div className="onboarding-tip">
-            <b>Useful tip:</b> {item.tip}
-          </div>
-          <footer className="onboarding-actions">
-            <button className="text-button" onClick={() => { navigate(item.page); close(); }}>Open {item.page}</button>
-            <div>
-              {step > 0 && <button className="secondary" onClick={() => move(step - 1)}>Back</button>}
-              {step < tourSteps.length - 1 ? (
-                <button className="primary" onClick={() => move(step + 1)}>Next step</button>
-              ) : (
-                <button className="primary" onClick={finish}>Finish introduction</button>
-              )}
-            </div>
-          </footer>
+          <button className="close" aria-label="Skip introduction" onClick={finish}>×</button>
+        </header>
+
+        <div className="onboarding-stepper" aria-label="Tour progress">
+          {tourSteps.map((s, index) => (
+            <button
+              key={s.short}
+              className={index === step ? "active" : index < step ? "done" : ""}
+              onClick={() => move(index)}
+              aria-label={`Step ${index + 1}: ${s.short}`}
+            >
+              <i>
+                {s.icon === "google" ? <GoogleGLogo size={14} /> : <SvgIcon name={s.icon} size={14} />}
+              </i>
+              <span>{s.short}</span>
+            </button>
+          ))}
         </div>
+
+        <div className="onboarding-points">
+          {item.points.map(point => (
+            <div className="onboarding-point" key={point[0]}>
+              <i><SvgIcon name="check" size={12} /></i>
+              <div>
+                <b>{point[0]}</b>
+                <p>{point[1]}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="onboarding-tip">
+          <i><SvgIcon name="help" size={14} /></i>
+          <span><b>Good to know:</b> {item.tip}</span>
+        </div>
+
+        <footer className="onboarding-foot">
+          <button className="secondary" onClick={() => { navigate(item.page); finish(); }}>
+            Open {item.page}
+          </button>
+          <div className="foot-actions">
+            {step > 0 && <button className="secondary" onClick={() => move(step - 1)}>Back</button>}
+            {step < tourSteps.length - 1 ? (
+              <button className="primary" onClick={() => move(step + 1)}>Next step →</button>
+            ) : (
+              <button className="primary" onClick={finish}>Get started</button>
+            )}
+          </div>
+        </footer>
       </section>
     </div>
   );
 }
 
-type HelpTopic = { category: string; icon: string; title: string; summary: string; steps: string[]; page: string };
-const helpTopics: HelpTopic[] = [
+const helpTopics = [
   { category: "Start", icon: "home", title: "Home and navigation", summary: "Understand My Day, the menu, mobile bar and saved home cards.", page: "Home", steps: ["Open Home to see current meetings, tasks, decisions and company updates.", "Choose Customise home to show, hide or reorder your personal cards.", "Use the left menu on a computer or More on a phone for every portal area.", "Use the top search or Ctrl K to find a page, record or quick command."] },
   { category: "Start", icon: "plus", title: "Quick create and notifications", summary: "Start work and respond to updates from anywhere.", page: "Home", steps: ["Choose Create in the top bar or phone navigation.", "Select the item you need and complete the required fields.", "Open the notification bell to read grouped updates.", "Snooze an item or select it to open the relevant record."] },
   { category: "Work", icon: "projects", title: "Projects, boards and cards", summary: "Plan projects, collaborate on cards and report delivery.", page: "Projects", steps: ["Open Projects and select an existing board or an approved template.", "Create lists for your process and add cards for deliverable work.", "Assign members, labels, dates, priorities, checklists, files and comments.", "Drag cards between lists or change the List field on mobile.", "Use Calendar, Timeline and Dashboard for deadlines and reporting.", "Open Automation to configure repeatable card actions."] },
@@ -187,8 +191,7 @@ const helpTopics: HelpTopic[] = [
   { category: "People", icon: "people", title: "People directory", summary: "Find a colleague, skill, team or contact route.", page: "People", steps: ["Search by name, department, location or useful skill.", "Open a profile to review contact and team information.", "Choose Email or Chat to contact the colleague.", "Keep your own job, department and phone details current under Profile."] },
   { category: "People", icon: "chat", title: "Chat and conversations", summary: "Use channels, groups and direct conversations.", page: "Chat", steps: ["Open Chat and select a company channel or conversation.", "Choose New conversation to start a channel, group or direct chat.", "Add only the colleagues who need the conversation.", "Use clear channel names and keep sensitive records in approved systems."] },
   { category: "Information", icon: "knowledge", title: "Knowledge and policies", summary: "Find trusted guidance, news and required reading.", page: "Knowledge", steps: ["Search Knowledge by title, category or subject.", "Open an article to read the current owner and review date.", "Complete policy acknowledgement when requested.", "Mark useful guidance as Helpful and contact the owner for corrections."] },
-  { category: "Work life", icon: "leave", title: "Leave, shifts and rota", summary: "Manage time away, availability and shift changes.", page: "Leave & shifts", steps: ["Review your current leave balance and rota.", "Create a leave request with accurate dates and type.", "Offer availability or request a shift change when needed.", "Follow the status and manager decision from the same page."] },
-  { category: "Work life", icon: "operations", title: "Operations tools", summary: "Drivers, vehicles, incidents, handovers and service status.", page: "Operations", steps: ["Choose the relevant Operations tab.", "Review driver and vehicle warnings before assigning work.", "Report incidents with accurate details and confidentiality settings.", "Read handover notes at the start of a shift.", "Check Service status before reporting a known outage."] },
+  { category: "Work life", icon: "leave", title: "Leave and time off", summary: "Manage annual leave, track balances and absence records.", page: "Leave", steps: ["Review your current holiday balance.", "Create a leave request with accurate dates and type.", "Follow the status and manager decision from the same page."] },
   { category: "Account", icon: "settings", title: "Profile, accessibility and mobile app", summary: "Personalise the portal and install it on a phone.", page: "Home", steps: ["Choose your name in the menu to open Profile and preferences.", "Update work details and select your time zone.", "Choose dark mode, larger text, high contrast or reduced motion.", "Set notification preferences and connect Google services.", "Choose Install portal or add it from your phone browser menu."] },
   { category: "Account", icon: "lock", title: "Security and signing out", summary: "Keep company information protected.", page: "Home", steps: ["Always enter through Continue with Google using @takeme.taxi.", "Do not share your account or leave the portal open on a shared device.", "Choose Sign out at the bottom of the navigation when using a shared or temporary device.", "Report unexpected access, prompts or activity to Take Me IT immediately."] },
 ];
@@ -213,7 +216,7 @@ export function HelpCentre({ close, restartTour, navigate, isAdmin }: { close: (
       </section>
       <div className="panel-search">
         <SvgIcon name="search" size={16} />
-        <input aria-label="Search help" placeholder="Search projects, Google, requests, shifts…" value={query} onChange={event => setQuery(event.target.value)} />
+        <input aria-label="Search help" placeholder="Search projects, Google, requests, leave…" value={query} onChange={event => setQuery(event.target.value)} />
       </div>
       <div className="help-categories">
         {categories.map(item => (

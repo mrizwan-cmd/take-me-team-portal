@@ -80,7 +80,7 @@ export type ProjectTemplate = { id: string; name: string; category: string; desc
 
 export type FeatureKey =
   | "actionInbox" | "tasks" | "people" | "requests" | "calendar" | "knowledge" | "documents" | "chat"
-  | "leave" | "shifts" | "drivers" | "vehicles" | "incidents" | "handover" | "serviceStatus"
+  | "leave"
   | "googleCalendar" | "googleDrive" | "directorySync" | "notifications" | "quickCreate" | "commandBar"
   | "pwa" | "accessibility" | "analytics" | "projects";
 
@@ -166,12 +166,6 @@ export const featureLabels: Record<FeatureKey, [string, string]> = {
   documents: ["Documents", "Portal uploads and company files"],
   chat: ["Chat and channels", "Channels, groups and direct messages"],
   leave: ["Leave management", "Holiday, sickness and WFH requests"],
-  shifts: ["Shift and rota centre", "Availability, cover and shift swaps"],
-  drivers: ["Driver hub", "Driver records and expiry reminders"],
-  vehicles: ["Vehicle hub", "Assignments, maintenance and inspections"],
-  incidents: ["Incident reporting", "Safety, complaints and investigations"],
-  handover: ["Operations handover", "Shift notes and priority updates"],
-  serviceStatus: ["Service status", "Internal systems and maintenance notices"],
   googleCalendar: ["Google Calendar and Meet", "Create and manage Google events"],
   googleDrive: ["Google Drive and Docs", "Browse, attach and create company files"],
   directorySync: ["Google directory sync", "Employees, groups and profile photos"],
@@ -185,7 +179,7 @@ export const featureLabels: Record<FeatureKey, [string, string]> = {
 };
 
 export const defaultPortalState: PortalState = {
-  profile: { name: "Muneeb Rizwan", jobTitle: "Operations", email: "muneeb.rizwan@takeme.taxi", phone: "", timezone: "Europe/London", department: "Operations" },
+  profile: { name: "Muneeb Rizwan", jobTitle: "Product & Operations", email: "muneeb.rizwan@takeme.taxi", phone: "", timezone: "Europe/London", department: "Operations" },
   preferences: {
     theme: "light", textSize: "normal", highContrast: false, reducedMotion: false,
     emailNotifications: true, browserNotifications: true, weeklyDigest: false, quietHours: false,
@@ -205,7 +199,7 @@ export const defaultPortalState: PortalState = {
   requests: [
     { id: "PO-2026-041", title: "New design laptops", type: "Purchase order", amount: "£8,450", status: "Awaiting approval", tone: "amber", requester: "Daniel Cole", created: "13 Aug 2026", details: "Four laptops for the design and marketing team.", priority: "High", timeline: timeline("Daniel Cole", "Muneeb Rizwan") },
     { id: "MKT-2026-118", title: "Q4 customer campaign", type: "Marketing request", amount: "—", status: "In progress", tone: "blue", requester: "Sofia Khan", created: "12 Aug 2026", details: "Campaign support for the Q4 passenger promotion.", priority: "Normal", timeline: timeline("Sofia Khan", "Daniel Cole") },
-    { id: "IT-2026-327", title: "Figma access for Sam", type: "IT access", amount: "—", status: "Completed", tone: "green", requester: "Sam Wilson", created: "11 Aug 2026", details: "Editor access required for operations templates.", priority: "Normal", timeline: timeline("Sam Wilson", "IT Support").map(item => ({ ...item, complete: true, time: "Completed" })) },
+    { id: "IT-2026-327", title: "Figma access for Sam", type: "IT access", amount: "—", status: "Completed", tone: "green", requester: "Sam Wilson", created: "11 Aug 2026", details: "Editor access required for team templates.", priority: "Normal", timeline: timeline("Sam Wilson", "IT Support").map(item => ({ ...item, complete: true, time: "Completed" })) },
     { id: "HR-2026-204", title: "Annual leave · 24–28 August", type: "Leave request", amount: "—", status: "Approved", tone: "green", requester: "Muneeb Rizwan", created: "10 Aug 2026", details: "Five days annual leave.", priority: "Normal", timeline: timeline("Muneeb Rizwan", "Sofia Khan").map(item => ({ ...item, complete: true, time: "Approved" })) },
   ],
   approvals: [
@@ -216,20 +210,20 @@ export const defaultPortalState: PortalState = {
   tasks: [
     { id: "TASK-01", title: "Review Q4 campaign brief", owner: "Muneeb Rizwan", due: "Today", status: "In progress", source: "Marketing request", priority: "High" },
     { id: "TASK-02", title: "Confirm all-hands agenda", owner: "Muneeb Rizwan", due: "Today", status: "To do", source: "Calendar", priority: "Normal" },
-    { id: "TASK-03", title: "Send fleet document reminder", owner: "Sam Wilson", due: "14 Aug", status: "Waiting", source: "Driver hub", priority: "High" },
+    { id: "TASK-03", title: "Prepare quarterly review notes", owner: "Sam Wilson", due: "14 Aug", status: "Waiting", source: "Projects", priority: "High" },
     { id: "TASK-04", title: "Read Expenses Policy v3", owner: "Muneeb Rizwan", due: "16 Aug", status: "To do", source: "Knowledge", priority: "Normal" },
   ],
   events: [
     { id: "EV-01", title: "Quarterly all-hands", date: "2026-08-13", start: "15:00", end: "16:00", location: "Google Meet", meet: true, guests: ["all@takeme.taxi"], notes: "Company results and Q4 priorities." },
     { id: "EV-02", title: "Marketing sync", date: "2026-08-14", start: "10:30", end: "11:00", location: "Room Cedar", meet: false, guests: ["marketing@takeme.taxi"], notes: "Weekly campaign review." },
-    { id: "EV-03", title: "Operations stand-up", date: "2026-08-11", start: "09:30", end: "10:00", location: "Google Meet", meet: true, guests: ["operations@takeme.taxi"], notes: "Daily service and fleet update." },
+    { id: "EV-03", title: "Team stand-up", date: "2026-08-11", start: "09:30", end: "10:00", location: "Google Meet", meet: true, guests: ["team@takeme.taxi"], notes: "Daily project and delivery update." },
   ],
   conversations: [
     { id: "CHAT-01", name: "Company announcements", type: "Channel", members: ["Everyone"], unread: 0, messages: [
       { id: "M-01", author: "Sofia Khan", initials: "SK", text: "Today’s all-hands starts at 3:00 PM. The Google Meet link is in the calendar event.", time: "10:32" },
       { id: "M-02", author: "Daniel Cole", initials: "DC", text: "We’ll also share the Q4 campaign preview.", time: "10:47" },
     ] },
-    { id: "CHAT-02", name: "Operations", type: "Channel", members: ["Muneeb Rizwan", "Sam Wilson", "Sofia Khan"], unread: 4, messages: [{ id: "M-03", author: "Sam Wilson", initials: "SW", text: "Morning fleet check is complete. Two vehicles need follow-up.", time: "09:18" }] },
+    { id: "CHAT-02", name: "General", type: "Channel", members: ["Muneeb Rizwan", "Sam Wilson", "Sofia Khan"], unread: 4, messages: [{ id: "M-03", author: "Sam Wilson", initials: "SW", text: "Morning review is complete. Ready for today's release.", time: "09:18" }] },
     { id: "CHAT-03", name: "Customer Support", type: "Channel", members: ["Support team"], unread: 2, messages: [] },
     { id: "CHAT-04", name: "Marketing", type: "Channel", members: ["Marketing team"], unread: 0, messages: [] },
   ],
@@ -237,12 +231,12 @@ export const defaultPortalState: PortalState = {
     { id: "DOC-01", name: "Take Me brand guidelines", type: "PDF", owner: "Marketing", updated: "Today", folder: "Brand assets", size: "4.2 MB", drive: true },
     { id: "DOC-02", name: "Employee handbook 2026", type: "Google Doc", owner: "People", updated: "Yesterday", folder: "Policies", size: "—", drive: true },
     { id: "DOC-03", name: "PO request template", type: "Spreadsheet", owner: "Finance", updated: "8 Aug", folder: "Templates", size: "88 KB", drive: true },
-    { id: "DOC-04", name: "Vehicle inspection checklist", type: "PDF", owner: "Operations", updated: "6 Aug", folder: "Operations", size: "620 KB" },
+    { id: "DOC-04", name: "Project delivery guide", type: "PDF", owner: "Technology", updated: "6 Aug", folder: "Guides", size: "620 KB" },
   ],
   articles: [
     { id: "KB-01", title: "Employee handbook", category: "People", summary: "Everything you need to know about working at Take Me.", owner: "People team", reviewed: "1 Aug 2026", acknowledgement: true, helpful: 42 },
     { id: "KB-02", title: "How to submit a purchase order", category: "Finance", summary: "Approval limits, supplier details and the complete PO process.", owner: "Finance", reviewed: "4 Aug 2026", helpful: 31 },
-    { id: "KB-03", title: "Driver incident response", category: "Operations", summary: "The immediate steps and contacts for operational incidents.", owner: "Operations", reviewed: "9 Aug 2026", acknowledgement: true, helpful: 29 },
+    { id: "KB-03", title: "Workplace health and safety", category: "Company", summary: "Office guidelines, emergency contacts and incident protocols.", owner: "People", reviewed: "9 Aug 2026", acknowledgement: true, helpful: 29 },
     { id: "KB-04", title: "Brand and social media guide", category: "Marketing", summary: "Logos, tone of voice and campaign approval guidance.", owner: "Marketing", reviewed: "7 Aug 2026", helpful: 18 },
     { id: "KB-05", title: "Google Workspace basics", category: "Technology", summary: "Calendar, Drive, Meet and company account help.", owner: "IT", reviewed: "11 Aug 2026", helpful: 36 },
   ],
@@ -250,40 +244,18 @@ export const defaultPortalState: PortalState = {
     { id: "LEAVE-01", employee: "Muneeb Rizwan", type: "Annual leave", dates: "24–28 Aug", days: 5, status: "Approved" },
     { id: "LEAVE-02", employee: "Sam Wilson", type: "Work from home", dates: "14 Aug", days: 1, status: "Pending" },
   ],
-  shifts: [
-    { id: "SHIFT-01", date: "Thu 13 Aug", time: "08:00–16:00", team: "Operations day", location: "Leicester", status: "Confirmed" },
-    { id: "SHIFT-02", date: "Fri 14 Aug", time: "12:00–20:00", team: "Operations late", location: "Leicester", status: "Available" },
-    { id: "SHIFT-03", date: "Sat 15 Aug", time: "09:00–17:00", team: "Weekend cover", location: "Nottingham", status: "Needs cover" },
-  ],
-  drivers: [
-    { id: "DRV-1042", name: "Adeel Ahmed", licence: "Verified", vehicle: "TM42 ABC", status: "Active", expiry: "14 Feb 2027" },
-    { id: "DRV-1068", name: "James Walker", licence: "Expires soon", vehicle: "TM18 TAX", status: "Review", expiry: "28 Aug 2026" },
-    { id: "DRV-1091", name: "Hassan Ali", licence: "Verified", vehicle: "Unassigned", status: "Active", expiry: "3 May 2027" },
-    { id: "DRV-1104", name: "Sarah Martin", licence: "Document needed", vehicle: "TM66 CAB", status: "Restricted", expiry: "—" },
-  ],
-  vehicles: [
-    { id: "VEH-42", registration: "TM42 ABC", model: "Toyota Corolla", driver: "Adeel Ahmed", status: "Available", service: "12 Sep 2026" },
-    { id: "VEH-18", registration: "TM18 TAX", model: "Skoda Octavia", driver: "James Walker", status: "In service", service: "Today" },
-    { id: "VEH-66", registration: "TM66 CAB", model: "Toyota Prius", driver: "Sarah Martin", status: "Inspection due", service: "19 Aug 2026" },
-  ],
-  incidents: [
-    { id: "INC-2026-088", title: "Minor vehicle damage", category: "Vehicle", reported: "Today · 08:42", owner: "Sam Wilson", status: "Investigating", confidential: false },
-    { id: "INC-2026-087", title: "Passenger complaint follow-up", category: "Complaint", reported: "Yesterday", owner: "Sofia Khan", status: "Assigned", confidential: true },
-  ],
-  handovers: [
-    { id: "HAND-01", shift: "Night → Day", author: "Adeel Ahmed", note: "Airport queue was heavy after 05:30. Monitor cover through the morning peak.", priority: "High", read: false },
-    { id: "HAND-02", shift: "Operations", author: "Sam Wilson", note: "TM18 TAX is in service. Replacement vehicle assigned until 14:00.", priority: "Normal", read: false },
-  ],
+  shifts: [],
+  drivers: [],
+  vehicles: [],
+  incidents: [],
+  handovers: [],
   services: [
-    { id: "STATUS-01", name: "Booking platform", status: "Operational", note: "All booking services are running normally.", updated: "2 minutes ago" },
-    { id: "STATUS-02", name: "Phone system", status: "Operational", note: "Inbound and outbound calling is available.", updated: "8 minutes ago" },
-    { id: "STATUS-03", name: "Google Workspace", status: "Operational", note: "Calendar, Drive and Gmail are available.", updated: "10 minutes ago" },
-    { id: "STATUS-04", name: "Driver document service", status: "Maintenance", note: "Planned maintenance from 18:00 to 19:00.", updated: "Today · 09:00" },
+    { id: "STATUS-01", name: "Portal Services", status: "Operational", note: "All core portal services are running normally.", updated: "2 minutes ago" },
+    { id: "STATUS-02", name: "Google Workspace", status: "Operational", note: "Calendar, Drive and Gmail are available.", updated: "10 minutes ago" },
   ],
   notifications: [
     { id: "NOT-01", title: "PO-2026-041 needs your approval", detail: "New design laptops · £8,450", group: "Approvals", time: "5 minutes ago", read: false },
     { id: "NOT-02", title: "Quarterly all-hands starts at 3:00 PM", detail: "Google Meet link is ready", group: "Calendar", time: "2 hours ago", read: false },
-    { id: "NOT-03", title: "James Walker’s licence expires soon", detail: "Review before 28 August", group: "Operations", time: "Today", read: false },
     { id: "NOT-04", title: "Your IT access request was completed", detail: "Figma access for Sam", group: "Requests", time: "Yesterday", read: true },
   ],
   audit: [
@@ -293,7 +265,7 @@ export const defaultPortalState: PortalState = {
   ],
   projectBoards: [
     {
-      id: "BOARD-LAUNCH", title: "Mobile app launch", description: "Plan and deliver the Take Me employee app launch across operations, people and marketing.", visibility: "Workspace", starred: true, background: "ocean", createdAt: "1 Aug 2026", updatedAt: "Today",
+      id: "BOARD-LAUNCH", title: "Mobile app launch", description: "Plan and deliver the Take Me employee app launch across teams.", visibility: "Workspace", starred: true, background: "ocean", createdAt: "1 Aug 2026", updatedAt: "Today",
       calendarSync: true, driveFolder: "Take Me / Mobile app launch", archived: false,
       members: [
         { id: "MEM-MR", name: "Muneeb Rizwan", initials: "MR", email: "muneeb.rizwan@takeme.taxi", color: "#007eae" },
@@ -302,8 +274,9 @@ export const defaultPortalState: PortalState = {
         { id: "MEM-SW", name: "Sam Wilson", initials: "SW", email: "sam.wilson@takeme.taxi", color: "#168a58" },
       ],
       labels: [
-        { id: "LBL-OPS", name: "Operations", color: "#168a58" }, { id: "LBL-DESIGN", name: "Design", color: "#7c4dff" },
-        { id: "LBL-TECH", name: "Engineering", color: "#007eae" }, { id: "LBL-BLOCK", name: "Blocked", color: "#bd3038" },
+        { id: "LBL-DESIGN", name: "Design", color: "#7c4dff" },
+        { id: "LBL-TECH", name: "Engineering", color: "#007eae" },
+        { id: "LBL-BLOCK", name: "Blocked", color: "#bd3038" },
         { id: "LBL-MKT", name: "Marketing", color: "#d76b16" },
       ],
       lists: [
@@ -317,16 +290,13 @@ export const defaultPortalState: PortalState = {
         { id: "CARD-101", title: "Employee mobile navigation", description: "Create one-handed navigation for the most-used employee actions and verify safe areas on Android and iPhone.", listId: "LIST-DONE", order: 0, members: ["MEM-MR", "MEM-SW"], labels: ["LBL-DESIGN", "LBL-TECH"], startDate: "2026-08-05", dueDate: "2026-08-10", dueComplete: true, priority: "High", estimate: "8h", cover: "#007eae", watching: true, archived: false, createdBy: "Muneeb Rizwan", createdAt: "5 Aug 2026", customFields: { Team: "Product", Sprint: "Launch 1", Risk: "Low" },
           checklists: [{ id: "CHK-101", title: "Acceptance criteria", items: [{ id: "CI-101", text: "Bottom navigation", complete: true }, { id: "CI-102", text: "Safe-area handling", complete: true }, { id: "CI-103", text: "Phone-size QA", complete: true }] }],
           attachments: [{ id: "ATT-101", name: "Mobile navigation brief", url: "https://drive.google.com/", source: "Google Drive", addedBy: "Muneeb Rizwan", addedAt: "6 Aug" }],
-          comments: [{ id: "COM-101", author: "Sam Wilson", initials: "SW", text: "Tested the primary actions with the operations team. The layout is much faster to use.", createdAt: "10 Aug · 14:20", reactions: ["👍 3"] }],
+          comments: [{ id: "COM-101", author: "Sam Wilson", initials: "SW", text: "Tested the primary actions. The layout is fast to use.", createdAt: "10 Aug · 14:20", reactions: ["👍 3"] }],
           activity: [{ id: "ACT-101", actor: "Muneeb Rizwan", action: "moved this card to Done", time: "10 Aug · 15:10" }] },
         { id: "CARD-102", title: "Google Calendar event sync", description: "Connect card due dates to company calendars and support Meet links for project milestones.", listId: "LIST-DOING", order: 0, members: ["MEM-MR"], labels: ["LBL-TECH"], startDate: "2026-08-12", dueDate: "2026-08-18", dueComplete: false, priority: "Urgent", estimate: "12h", cover: "#0f9d58", watching: true, archived: false, createdBy: "Muneeb Rizwan", createdAt: "8 Aug 2026", customFields: { Team: "Engineering", Sprint: "Launch 1", Risk: "Medium" },
           checklists: [{ id: "CHK-102", title: "Integration", items: [{ id: "CI-104", text: "OAuth configuration", complete: true }, { id: "CI-105", text: "Create and edit events", complete: true }, { id: "CI-106", text: "Production account test", complete: false, assignee: "MEM-MR", dueDate: "2026-08-18" }] }], attachments: [], comments: [], activity: [{ id: "ACT-102", actor: "Muneeb Rizwan", action: "started work", time: "12 Aug · 09:00" }] },
         { id: "CARD-103", title: "App-store rollout guide", description: "Prepare employee installation instructions, screenshots and support notes.", listId: "LIST-READY", order: 0, members: ["MEM-SK", "MEM-DC"], labels: ["LBL-MKT"], startDate: "2026-08-17", dueDate: "2026-08-21", dueComplete: false, priority: "Normal", estimate: "5h", cover: "#d76b16", watching: false, archived: false, createdBy: "Sofia Khan", createdAt: "11 Aug 2026", customFields: { Team: "Marketing", Sprint: "Launch 2", Risk: "Low" }, checklists: [], attachments: [], comments: [], activity: [] },
-        { id: "CARD-104", title: "Employee pilot feedback", description: "Run a pilot with operations and customer support employees and collect structured feedback.", listId: "LIST-BACKLOG", order: 0, members: ["MEM-SW"], labels: ["LBL-OPS"], startDate: "2026-08-19", dueDate: "2026-08-25", dueComplete: false, priority: "High", estimate: "2d", cover: "", watching: false, archived: false, createdBy: "Sam Wilson", createdAt: "12 Aug 2026", customFields: { Team: "Operations", Sprint: "Launch 2", Risk: "Medium" }, checklists: [], attachments: [], comments: [], activity: [] },
         { id: "CARD-105", title: "Fix profile menu on phones", description: "Ensure the mobile profile and preferences button stays above app navigation.", listId: "LIST-REVIEW", order: 0, members: ["MEM-MR"], labels: ["LBL-DESIGN", "LBL-BLOCK"], startDate: "2026-08-13", dueDate: "2026-08-14", dueComplete: false, priority: "Urgent", estimate: "2h", cover: "#bd3038", watching: true, archived: false, createdBy: "Muneeb Rizwan", createdAt: "13 Aug 2026", customFields: { Team: "Product", Sprint: "Launch 1", Risk: "High" }, checklists: [], attachments: [], comments: [{ id: "COM-105", author: "Muneeb Rizwan", initials: "MR", text: "Confirmed on a 390px phone viewport. Ready for the final fix.", createdAt: "Today · 11:30" }], activity: [] },
       ],
-    },
-    { id: "BOARD-OPS", title: "Operations improvement", description: "Continuous improvements for dispatch, fleet and customer operations.", visibility: "Workspace", starred: true, background: "midnight", createdAt: "12 Jul 2026", updatedAt: "Yesterday", calendarSync: false, driveFolder: "Take Me / Operations", archived: false, members: [{ id: "MEM-MR", name: "Muneeb Rizwan", initials: "MR", email: "muneeb.rizwan@takeme.taxi", color: "#007eae" }, { id: "MEM-SW", name: "Sam Wilson", initials: "SW", email: "sam.wilson@takeme.taxi", color: "#168a58" }], labels: [{ id: "LBL-FLEET", name: "Fleet", color: "#168a58" }, { id: "LBL-CX", name: "Customer", color: "#7c4dff" }], lists: [{ id: "LIST-IDEAS", title: "Ideas", order: 0, color: "#75838a", limit: 0 }, { id: "LIST-ACTIVE", title: "Active", order: 1, color: "#007eae", limit: 5 }, { id: "LIST-COMPLETE", title: "Complete", order: 2, color: "#168a58", limit: 0 }], cards: [{ id: "CARD-201", title: "Morning fleet readiness checklist", description: "Standardise the daily fleet handover.", listId: "LIST-ACTIVE", order: 0, members: ["MEM-SW"], labels: ["LBL-FLEET"], startDate: "2026-08-10", dueDate: "2026-08-17", dueComplete: false, priority: "High", estimate: "1d", checklists: [], attachments: [], comments: [], activity: [], customFields: { Team: "Operations" }, cover: "#168a58", watching: false, archived: false, createdBy: "Sam Wilson", createdAt: "10 Aug 2026" }],
     },
     { id: "BOARD-MKT", title: "Q4 marketing campaign", description: "Campaign planning, content production and launch approvals.", visibility: "Workspace", starred: false, background: "sunset", createdAt: "28 Jul 2026", updatedAt: "3 days ago", calendarSync: true, driveFolder: "Take Me / Marketing / Q4", archived: false, members: [{ id: "MEM-SK", name: "Sofia Khan", initials: "SK", email: "sofia.khan@takeme.taxi", color: "#7c4dff" }, { id: "MEM-DC", name: "Daniel Cole", initials: "DC", email: "daniel.cole@takeme.taxi", color: "#d76b16" }], labels: [{ id: "LBL-COPY", name: "Copy", color: "#007eae" }, { id: "LBL-DESIGN", name: "Design", color: "#7c4dff" }], lists: [{ id: "LIST-BRIEF", title: "Briefs", order: 0, color: "#75838a", limit: 0 }, { id: "LIST-PRODUCTION", title: "Production", order: 1, color: "#d76b16", limit: 6 }, { id: "LIST-APPROVAL", title: "Approval", order: 2, color: "#7c4dff", limit: 3 }, { id: "LIST-LIVE", title: "Live", order: 3, color: "#168a58", limit: 0 }], cards: [{ id: "CARD-301", title: "Passenger app launch story", description: "Customer story for the Q4 campaign.", listId: "LIST-PRODUCTION", order: 0, members: ["MEM-SK"], labels: ["LBL-COPY"], startDate: "2026-08-12", dueDate: "2026-08-20", dueComplete: false, priority: "Normal", estimate: "6h", checklists: [], attachments: [], comments: [], activity: [], customFields: { Channel: "Website" }, cover: "#7c4dff", watching: false, archived: false, createdBy: "Sofia Khan", createdAt: "12 Aug 2026" }],
     },
@@ -338,10 +308,9 @@ export const defaultPortalState: PortalState = {
   projectTemplates: [
     { id: "TPL-01", name: "Team project", category: "Project management", description: "Plan work from ideas through delivery.", lists: ["Backlog", "Ready", "In progress", "Review", "Done"], color: "ocean" },
     { id: "TPL-02", name: "Marketing campaign", category: "Marketing", description: "Move campaigns from brief to launch.", lists: ["Briefs", "Production", "Approval", "Scheduled", "Live"], color: "sunset" },
-    { id: "TPL-03", name: "Operations improvement", category: "Operations", description: "Capture and deliver continuous improvements.", lists: ["Ideas", "Selected", "Active", "Measure", "Complete"], color: "midnight" },
     { id: "TPL-04", name: "Employee onboarding", category: "People", description: "Coordinate every new-starter action.", lists: ["Before joining", "First day", "First week", "First month", "Complete"], color: "forest" },
   ],
-  widgets: ["approvals", "calendar", "tasks", "status", "news", "quickLinks"],
+  widgets: ["approvals", "calendar", "tasks", "news", "quickLinks"],
 };
 
 export function mergePortalState(value: Partial<PortalState> | null | undefined): PortalState {
@@ -359,7 +328,7 @@ export function mergePortalState(value: Partial<PortalState> | null | undefined)
 
 function repairTextEncoding<T>(value: T): T {
   if (typeof value === "string" && /[ÂÃâ]/.test(value) && [...value].every(character => character.charCodeAt(0) < 256)) {
-    try { const decoded = new TextDecoder().decode(Uint8Array.from([...value].map(character => character.charCodeAt(0)))); if (!decoded.includes("�")) return decoded as T; } catch { /* keep original */ }
+    try { const decoded = new TextDecoder().decode(Uint8Array.from([...value].map(character => character.charCodeAt(0)))); if (!decoded.includes("")) return decoded as T; } catch { /* keep original */ }
   }
   if (Array.isArray(value)) return value.map(item => repairTextEncoding(item)) as T;
   if (value && typeof value === "object") return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, repairTextEncoding(item)])) as T;

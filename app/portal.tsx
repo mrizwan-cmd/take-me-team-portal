@@ -13,7 +13,7 @@ import { usePortalState } from "./use-portal-state";
 const employeeNav: [string, string, FeatureKey?][] = [
   ["Home", "home"], ["Action inbox", "check", "actionInbox"], ["Tasks", "tasks"], ["Projects", "projects"], ["People", "people"], ["Requests", "requests"],
   ["Calendar", "calendar"], ["Knowledge", "knowledge"], ["Documents", "documents"], ["Chat", "chat"],
-  ["Leave & shifts", "leave"], ["Operations", "operations"],
+  ["Leave", "leave", "leave"],
 ];
 const adminNav: [string, string][] = [
   ["Overview", "home"], ["People & access", "people"], ["Departments", "settings"], ["Forms & workflows", "requests"], ["Purchase orders", "requests"],
@@ -71,7 +71,7 @@ export default function Portal() {
       const initialPage = requestedPage && employeeNav.some(item => item[0] === requestedPage) ? requestedPage : "Home";
       const requestedCreate = params.get("create");
       setPage(initialPage);
-      if (requestedCreate && ["request", "event", "conversation", "task", "leave", "shift", "incident", "handover"].includes(requestedCreate)) setCreateKind(requestedCreate);
+      if (requestedCreate && ["request", "event", "conversation", "task", "leave"].includes(requestedCreate)) setCreateKind(requestedCreate);
       window.history.replaceState({ page: initialPage, admin: false }, "", window.location.href);
     }, 0);
     const onPopState = (event: PopStateEvent) => {
@@ -171,129 +171,149 @@ export default function Portal() {
 
   return (
     <main className={shellClass}>
-      {menuOpen && <button className="mobile-scrim" aria-label="Close navigation" onClick={() => setMenuOpen(false)} />}
-      <aside className={`sidebar ${menuOpen ? "open" : ""}`} aria-label={admin ? "Administration navigation" : "Employee navigation"}>
+      <aside className={`sidebar ${menuOpen ? "open" : ""}`}>
         <div className="brand">
-          <Image src="/take-me-logo-black.png" alt="Take Me" width={54} height={58} priority />
-          <div>Team Portal<small>TAKE ME GROUP</small></div>
-          <button className="mobile-close" aria-label="Close navigation" onClick={() => setMenuOpen(false)}>×</button>
+          <Image src="/take-me-logo-black.png" alt="Take Me" width={38} height={40} priority />
+          <div>
+            <h1>Take Me</h1>
+            <small>{admin ? "Administration" : "Team Portal"}</small>
+          </div>
+          <button className="mobile-close" aria-label="Close menu" onClick={() => setMenuOpen(false)}>×</button>
         </div>
-        <button className="workspace" onClick={() => notify("Take Me Group workspace selected")}>
-          <i>TM</i>
-          <span>Take Me Group<small>Company workspace</small></span>
-          <b>⌄</b>
-        </button>
-        <nav>
-          {(admin ? adminNav : visibleNav).map(item => (
-            <button key={item[0]} className={page === item[0] ? "active" : ""} onClick={() => navigate(item[0])}>
-              <em><SvgIcon name={item[1]} size={16} /></em>
-              <span>{item[0]}</span>
-              {item[0] === "Action inbox" && pending > 0 && <mark>{pending}</mark>}
-              {item[0] === "Chat" && state.conversations.reduce((sum, chat) => sum + chat.unread, 0) > 0 && <mark>{state.conversations.reduce((sum, chat) => sum + chat.unread, 0)}</mark>}
-            </button>
-          ))}
+
+        <nav aria-label="Main navigation">
+          {admin ? (
+            adminNav.map(item => (
+              <button key={item[0]} className={page === item[0] ? "active" : ""} onClick={() => navigate(item[0])}>
+                <i><SvgIcon name={item[1]} size={18} /></i>
+                <span>{item[0]}</span>
+              </button>
+            ))
+          ) : (
+            visibleNav.map(item => (
+              <button key={item[0]} className={page === item[0] ? "active" : ""} onClick={() => navigate(item[0])}>
+                <i><SvgIcon name={item[1]} size={18} /></i>
+                <span>{item[0]}</span>
+                {item[0] === "Action inbox" && pending > 0 && <mark>{pending}</mark>}
+              </button>
+            ))
+          )}
         </nav>
+
         <div className="sidefoot">
-          {(admin || identity?.isAdmin) && (
-            <button className="admin-entry" onClick={admin ? openEmployee : () => openAdmin()}>
-              <em><SvgIcon name={admin ? "home" : "settings"} size={16} /></em>
-              <span>{admin ? "Employee portal" : "Admin settings"}</span>
+          {identity.isAdmin && (
+            <button className="admin-switch" onClick={() => (admin ? openEmployee() : openAdmin())}>
+              <i><SvgIcon name={admin ? "home" : "settings"} size={16} /></i>
+              <span>{admin ? "Exit to Employee Portal" : "Admin settings"}</span>
             </button>
           )}
-          <button onClick={() => { setPanel("help"); setMenuOpen(false); }}>
-            <em><SvgIcon name="help" size={16} /></em>
-            <span>Help centre</span>
+          <button className="profile-button" onClick={() => { setMenuOpen(false); setProfileOpen(true); }}>
+            <i>{state.profile.name.split(" ").map(part => part[0]).slice(0, 2).join("")}</i>
+            <div>
+              <b>{state.profile.name}</b>
+              <small>{state.profile.jobTitle || "Profile & preferences"}</small>
+            </div>
+            <span className="live-dot" title="Live sync" />
           </button>
-          <button className="user" onClick={() => { setProfileOpen(true); setMenuOpen(false); }}>
-            <i>{initials(state.profile.name)}</i>
-            <span><b>{state.profile.name}</b><small>{admin ? "Super administrator" : state.profile.jobTitle}</small></span>
-            <em>•••</em>
-          </button>
+          <a className="logout-button" href="/api/auth/logout" title="Sign out">
+            <i><SvgIcon name="logout" size={16} /></i>
+            <span>Sign out</span>
+          </a>
         </div>
-        <a className="sidebar-signout" href="/api/auth/logout">
-          <em><SvgIcon name="logout" size={16} /></em>
-          <span>Sign out</span>
-        </a>
       </aside>
+
+      {menuOpen && <div className="mobile-scrim" role="presentation" onClick={() => setMenuOpen(false)} />}
 
       <section className="content">
         <header className="topbar">
-          <button className="menu-button" aria-label="Open navigation" onClick={() => setMenuOpen(true)}>
-            <SvgIcon name="menu" size={18} />
+          <button className="menu-button" aria-label="Open menu" onClick={() => setMenuOpen(true)}>
+            <SvgIcon name="menu" size={20} />
           </button>
-          <Image className="mobile-logo" src="/take-me-logo-black.png" alt="" width={34} height={38} />
-          <button className="global-search" onClick={() => setCommandOpen(true)}>
-            <span><SvgIcon name="search" size={16} /></span>
-            <b>Search people, documents, forms and commands</b>
-            <kbd>CTRL K</kbd>
+
+          <button className="global-search" onClick={() => setCommandOpen(true)} aria-label="Universal search">
+            <i><SvgIcon name="search" size={16} /></i>
+            <b>Search or press </b>
+            <kbd>Ctrl K</kbd>
           </button>
-          <span className={`realtime-status ${realtime.status}`} title={realtime.status === "live" ? `${Math.max(1, realtime.onlineUsers.length)} connected employee session${realtime.onlineUsers.length === 1 ? "" : "s"}` : realtime.status === "syncing" ? "Changes refresh automatically in the background" : realtime.status === "offline" ? "Live updates will resume after reconnection" : realtime.status === "disabled" ? "Realtime updates are disabled by an administrator" : "Connecting to live updates"}>
-            <i />{realtime.status === "live" ? "Live" : realtime.status === "syncing" ? "Auto-sync" : realtime.status === "offline" ? "Offline" : realtime.status === "disabled" ? "Sync off" : "Connecting"}
-          </span>
-          <span className={`save-status ${saveStatus === "Saved" ? "saved" : saveStatus.startsWith("Conflict") || saveStatus === "Save failed" ? "conflict" : ""}`} title={saveStatus.startsWith("Conflict") ? "Another session changed portal data. Your changes are being merged safely." : saveStatus === "Save failed" ? "Changes could not be saved. Check the connection before continuing." : undefined}>
-            {saveStatus === "Saved" ? "● Saved" : saveStatus}
-          </span>
-          {!admin && state.features.quickCreate && (
-            <button className="top-create" onClick={() => setCreateKind("")} title="Quick create">
-              <SvgIcon name="plus" size={15} />
+
+          <div className="topbar-actions">
+            <button className="top-create primary" onClick={() => setCreateKind("")} aria-label="Create something new" title="Create">
+              <i><SvgIcon name="plus" size={16} /></i>
               <span>Create</span>
             </button>
-          )}
-          {!admin && identity?.isAdmin && (
-            <button className="admin-shortcut" onClick={() => openAdmin()} title="Open Admin settings">
-              <SvgIcon name="settings" size={15} />
-              <span>Admin</span>
+            <button className="icon-button" onClick={() => setPanel(panel === "notifications" ? null : "notifications")} aria-label="Notifications" title="Notifications">
+              <SvgIcon name="bell" size={18} />
+              {unread > 0 && <span className="badge">{unread}</span>}
             </button>
-          )}
-          <button className="icon-button" aria-label="Help" onClick={() => setPanel("help")}>
-            <SvgIcon name="help" size={16} />
-          </button>
-          <button className="icon-button" aria-label={`${unread} unread notifications`} onClick={() => setPanel("notifications")}>
-            <SvgIcon name="bell" size={16} />
-            {unread > 0 && <sup>{unread}</sup>}
-          </button>
+            <button className="icon-button" onClick={() => setPanel(panel === "help" ? null : "help")} aria-label="Help and guides" title="Help">
+              <SvgIcon name="help" size={18} />
+            </button>
+            {identity.isAdmin && !admin && (
+              <button className="admin-shortcut secondary" onClick={() => openAdmin("Overview")} aria-label="Admin settings" title="Admin settings">
+                <SvgIcon name="settings" size={16} />
+              </button>
+            )}
+            <div className="sync-chip" title="Live status">
+              <i className={realtime.status === "live" ? "ok" : realtime.status === "syncing" ? "syncing" : realtime.status === "offline" ? "warn" : ""} />
+              <span>{saveStatus === "Saving" ? "Saving…" : realtime.status === "live" ? "Live" : realtime.status === "offline" ? "Offline" : "Auto-sync"}</span>
+            </div>
+          </div>
         </header>
 
-        {!isOnline && <div className="network-banner" role="status">You’re offline. Reconnect before saving company changes.</div>}
-        {!admin && page === "Home" && state.features.pwa && !isStandalone && !installDismissed && (
-          <aside className="app-install-banner" aria-label="Install Take Me Portal">
-            <i><Image src="/take-me-icon-192.png" alt="" width={36} height={36} /></i>
-            <span>
-              <b>Add Take Me to your phone</b>
-              <small>{isIos ? "Open it like an app from your iPhone Home Screen." : "Faster access with a full-screen app experience."}</small>
-            </span>
-            <span className="install-actions">
+        {!isOnline && (
+          <div className="network-banner" role="status">
+            You’re offline. Changes will save automatically when your connection returns.
+          </div>
+        )}
+
+        {state.features.pwa && !isStandalone && !installDismissed && (
+          <aside className="app-install-banner" role="region" aria-label="Install Take Me Portal">
+            <i><Image src="/take-me-logo-black.png" alt="Take Me" width={36} height={36} /></i>
+            <div>
+              <b>Install Take Me Team Portal</b>
+              <small>Add to your home screen for quick access to tasks, calendar and chat.</small>
+            </div>
+            <div className="install-actions">
               <button onClick={installApp}>Install</button>
-              <button className="dismiss-install" aria-label="Dismiss install suggestion" onClick={dismissInstall}>×</button>
-            </span>
+              <button className="dismiss-install" aria-label="Dismiss install banner" onClick={dismissInstall}>×</button>
+            </div>
           </aside>
         )}
 
         {admin ? (
           <AdminPortal page={page} state={state} updateState={updateState} navigate={navigate} notify={notify} realtime={realtime} />
         ) : (
-          <EmployeePortal page={page} state={state} updateState={updateState} navigate={navigate} notify={notify} openCreate={(kind = "") => setCreateKind(kind)} openNotifications={() => setPanel("notifications")} realtime={realtime} />
+          <EmployeePortal
+            page={page}
+            state={state}
+            updateState={updateState}
+            navigate={navigate}
+            notify={notify}
+            openCreate={kind => setCreateKind(kind ?? "")}
+            openNotifications={() => setPanel("notifications")}
+            realtime={realtime}
+          />
         )}
       </section>
 
-      <nav className="mobile-bottom-nav" aria-label={admin ? "Admin app navigation" : "Employee app navigation"}>
+      <nav className="mobile-bottom-nav" aria-label="Employee app navigation">
         {admin ? (
           <>
-            <button className={page === "Overview" ? "active" : ""} aria-current={page === "Overview" ? "page" : undefined} onClick={() => navigate("Overview")}>
+            <button className={page === "Overview" ? "active" : ""} onClick={() => navigate("Overview")}>
               <i><SvgIcon name="home" size={18} /></i>
               <span>Overview</span>
             </button>
-            <button className={page === "People & access" ? "active" : ""} aria-current={page === "People & access" ? "page" : undefined} onClick={() => navigate("People & access")}>
+            <button className={page === "People & access" ? "active" : ""} onClick={() => navigate("People & access")}>
               <i><SvgIcon name="people" size={18} /></i>
               <span>People</span>
             </button>
-            <button className={page === "Forms & workflows" ? "active" : ""} aria-current={page === "Forms & workflows" ? "page" : undefined} onClick={() => navigate("Forms & workflows")}>
-              <i><SvgIcon name="requests" size={18} /></i>
-              <span>Workflows</span>
+            <button className="create-tab" onClick={() => setCreateKind("")} aria-label="Create something new">
+              <span className="create-bubble"><SvgIcon name="plus" size={20} /></span>
+              <span>Create</span>
             </button>
-            <button className={page === "Integrations" ? "active" : ""} aria-current={page === "Integrations" ? "page" : undefined} onClick={() => navigate("Integrations")}>
-              <i><SvgIcon name="link" size={18} /></i>
-              <span>Apps</span>
+            <button className={page === "Feature controls" ? "active" : ""} onClick={() => navigate("Feature controls")}>
+              <i><SvgIcon name="projects" size={18} /></i>
+              <span>Features</span>
             </button>
             <button onClick={() => setMenuOpen(true)}>
               <i><SvgIcon name="menu" size={18} /></i>
@@ -302,41 +322,22 @@ export default function Portal() {
           </>
         ) : (
           <>
-            <button className={page === "Home" ? "active" : ""} aria-current={page === "Home" ? "page" : undefined} onClick={() => navigate("Home")}>
+            <button className={page === "Home" ? "active" : ""} onClick={() => navigate("Home")}>
               <i><SvgIcon name="home" size={18} /></i>
               <span>Home</span>
             </button>
-            {state.features.projects ? (
-              <button className={page === "Projects" ? "active" : ""} aria-current={page === "Projects" ? "page" : undefined} onClick={() => navigate("Projects")}>
-                <i><SvgIcon name="projects" size={18} /></i>
-                <span>Projects</span>
-              </button>
-            ) : identity?.canApprove && state.features.actionInbox ? (
-              <button className={page === "Action inbox" ? "active" : ""} aria-current={page === "Action inbox" ? "page" : undefined} onClick={() => navigate("Action inbox")}>
-                <i><SvgIcon name="check" size={18} /></i>
-                <span>Inbox</span>
-                {pending > 0 && <mark>{pending}</mark>}
-              </button>
-            ) : (
-              <button className={page === "Tasks" ? "active" : ""} aria-current={page === "Tasks" ? "page" : undefined} onClick={() => navigate("Tasks")}>
-                <i><SvgIcon name="tasks" size={18} /></i>
-                <span>Tasks</span>
-              </button>
-            )}
-            <button className="create-tab" onClick={() => setCreateKind("")}>
-              <i><SvgIcon name="plus" size={20} /></i>
+            <button className={page === "Projects" ? "active" : ""} onClick={() => navigate("Projects")}>
+              <i><SvgIcon name="projects" size={18} /></i>
+              <span>Projects</span>
+            </button>
+            <button className="create-tab" onClick={() => setCreateKind("")} aria-label="Create something new">
+              <span className="create-bubble"><SvgIcon name="plus" size={20} /></span>
               <span>Create</span>
             </button>
-            {state.features.chat ? (
-              <button className={page === "Chat" ? "active" : ""} aria-current={page === "Chat" ? "page" : undefined} onClick={() => navigate("Chat")}>
+            {state.features.chat && (
+              <button className={page === "Chat" ? "active" : ""} onClick={() => navigate("Chat")}>
                 <i><SvgIcon name="chat" size={18} /></i>
                 <span>Chat</span>
-                {state.conversations.reduce((sum, chat) => sum + chat.unread, 0) > 0 && <mark>{state.conversations.reduce((sum, chat) => sum + chat.unread, 0)}</mark>}
-              </button>
-            ) : (
-              <button className={page === "Calendar" ? "active" : ""} aria-current={page === "Calendar" ? "page" : undefined} onClick={() => navigate("Calendar")}>
-                <i><SvgIcon name="calendar" size={18} /></i>
-                <span>Calendar</span>
               </button>
             )}
             <button onClick={() => setMenuOpen(true)}>
@@ -379,7 +380,13 @@ function CommandPalette({ state, query, setQuery, close, navigate, openCreate, o
       ...state.articles.map(item => ({ title: item.title, detail: `${item.category} · Knowledge`, icon: "knowledge", action: () => navigate("Knowledge") })),
       ...state.conversations.map(item => ({ title: item.name, detail: `${item.type} · Chat`, icon: "chat", action: () => navigate("Chat") })),
     ];
-    const commands = [["Create a request", "request", "requests"], ["Create a calendar event", "event", "calendar"], ["Start a conversation", "conversation", "chat"], ["Add a task", "task", "tasks"], ["Report an incident", "incident", "operations"]].map(item => ({ title: item[0], detail: "Quick command", icon: item[2], action: () => openCreate(item[1]) }));
+    const commands = [
+      ["Create a request", "request", "requests"],
+      ["Create a calendar event", "event", "calendar"],
+      ["Start a conversation", "conversation", "chat"],
+      ["Add a task", "task", "tasks"],
+      ["Request leave", "leave", "leave"]
+    ].map(item => ({ title: item[0], detail: "Quick command", icon: item[2], action: () => openCreate(item[1]) }));
     const adminItem = { title: "Open Admin settings", detail: "Administration", icon: "settings", action: () => openAdmin() };
     const sessionItem = { title: "Sign out", detail: "End this company session", icon: "logout", action: () => window.location.assign("/api/auth/logout") };
     return [...commands, sessionItem, adminItem, ...pages, ...records].filter(item => `${item.title} ${item.detail}`.toLowerCase().includes(query.toLowerCase())).slice(0, 12);
@@ -420,13 +427,10 @@ const createOptions = [
   ["conversation", "chat", "Conversation", "Channel, group or direct message"],
   ["task", "tasks", "Task", "Personal or shared follow-up"],
   ["leave", "leave", "Leave request", "Holiday, sickness or work from home"],
-  ["shift", "clock", "Shift availability", "Offer availability or request a change"],
-  ["incident", "operations", "Incident report", "Safety, complaint or vehicle issue"],
-  ["handover", "document", "Handover note", "Pass an update to the next shift"],
 ];
 
 function QuickCreate({ kind, state, updateState, setKind, close, notify }: { kind: string; state: PortalState; updateState: (updater: (current: PortalState) => PortalState) => void; setKind: (kind: string) => void; close: () => void; notify: (message: string) => void }) {
-  if (!kind || kind === "operations") {
+  if (!kind) {
     return (
       <Modal title="Quick create" eyebrow="START SOMETHING" close={close} className="quick-create-modal">
         <p className="modal-lead">Choose what you want to create.</p>
@@ -447,7 +451,7 @@ function QuickCreate({ kind, state, updateState, setKind, close, notify }: { kin
 
 function CreateForm({ kind, state, updateState, close, notify, back }: { kind: string; state: PortalState; updateState: (updater: (current: PortalState) => PortalState) => void; close: () => void; notify: (message: string) => void; back: () => void }) {
   const [title, setTitle] = useState("");
-  const [type, setType] = useState(kind === "request" ? "Purchase order" : kind === "conversation" ? "Channel" : kind === "leave" ? "Annual leave" : kind === "incident" ? "Vehicle" : "Normal");
+  const [type, setType] = useState(kind === "request" ? "Purchase order" : kind === "conversation" ? "Channel" : kind === "leave" ? "Annual leave" : "Normal");
   const [details, setDetails] = useState("");
   const [date, setDate] = useState("2026-08-14");
   const [endDate, setEndDate] = useState("2026-08-15");
@@ -463,10 +467,7 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
     event: ["Create an event", "GOOGLE CALENDAR"],
     conversation: ["New conversation", "CHAT & CHANNELS"],
     task: ["Add a task", "TASKS"],
-    leave: ["Request time away", "LEAVE & AVAILABILITY"],
-    shift: ["Add shift availability", "ROTA"],
-    incident: ["Report an incident", "SAFETY & OPERATIONS"],
-    handover: ["Add a handover note", "OPERATIONS HANDOVER"],
+    leave: ["Request time away", "LEAVE & TIME OFF"],
   };
 
   const submit = async (event: React.FormEvent) => {
@@ -485,26 +486,26 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
             date,
             start,
             end,
-            location: meet ? "Google Meet" : details,
-            notes: details,
-            guests: people.split(",").map(value => value.trim()).filter(Boolean),
+            location: meet ? "Google Meet" : details || "Head office",
             meet,
+            guests: people.split(",").map(value => value.trim()).filter(Boolean),
+            notes: details,
             timeZone: state.profile.timezone,
           }),
         });
-        const result = await response.json() as { id?: string; htmlLink?: string; hangoutLink?: string; error?: { message?: string } | string };
-        if (!response.ok) throw new Error(typeof result.error === "string" ? result.error : result.error?.message || "Google Calendar creation failed");
-        googleEvent = result;
-      } catch (error) {
-        notify(`${error instanceof Error ? error.message : "Google Calendar unavailable"}; saved in the portal only`);
+        const result = await response.json() as { id?: string; htmlLink?: string; hangoutLink?: string; error?: string };
+        if (response.ok && result.id) googleEvent = result;
+      } catch {
+        /* proceed offline/local fallback */
       }
     }
 
     updateState(current => {
       let next = current;
       if (kind === "request") {
-        const request: RequestItem = {
-          id: makeId(type === "Purchase order" ? "PO" : "REQ"),
+        const id = makeId(type === "Purchase order" ? "PO" : "REQ");
+        const item: RequestItem = {
+          id,
           title: cleanTitle,
           type,
           amount: amount ? `£${amount}` : "—",
@@ -512,15 +513,19 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
           tone: draft ? "slate" : "amber",
           requester: current.profile.name,
           created: "Just now",
-          details: details || "No additional details.",
+          details,
           priority: "Normal",
           timeline: [
-            { label: draft ? "Draft saved" : "Submitted", person: current.profile.name, time: "Just now", complete: true },
-            { label: "Manager review", person: "Assigned automatically", time: "Waiting", complete: false },
+            { label: "Submitted", person: current.profile.name, time: "Just now", complete: true },
+            { label: "Manager review", person: "Sofia Khan", time: "Waiting", complete: false },
             { label: "Final confirmation", person: "Portal workflow", time: "Waiting", complete: false },
           ],
         };
-        next = { ...current, requests: [request, ...current.requests] };
+        next = {
+          ...current,
+          requests: [item, ...current.requests],
+          approvals: draft ? current.approvals : [{ id: makeId("APR"), requestId: id, title: cleanTitle, requester: current.profile.name, due: "In 2 days", amount: item.amount, status: "Pending", type }, ...current.approvals],
+        };
       }
       if (kind === "event") {
         next = {
@@ -528,15 +533,15 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
           events: [
             {
               id: makeId("EV"),
+              googleId: googleEvent?.id,
               title: cleanTitle,
               date,
               start,
               end,
-              location: meet ? "Google Meet" : details || "To be confirmed",
+              location: meet ? "Google Meet" : details || "Head office",
               meet,
               guests: people.split(",").map(value => value.trim()).filter(Boolean),
               notes: details,
-              googleId: googleEvent?.id,
               webLink: googleEvent?.htmlLink || googleEvent?.hangoutLink,
             },
             ...current.events,
@@ -561,9 +566,6 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
       }
       if (kind === "task") next = { ...current, tasks: [{ id: makeId("TASK"), title: cleanTitle, owner: people || current.profile.name, due: date, status: "To do", source: details || "Quick create", priority: type }, ...current.tasks] };
       if (kind === "leave") next = { ...current, leave: [{ id: makeId("LEAVE"), employee: current.profile.name, type, dates: `${date} to ${endDate}`, days: Math.max(1, Number(amount) || 1), status: draft ? "Draft" : "Pending" }, ...current.leave] };
-      if (kind === "shift") next = { ...current, shifts: [{ id: makeId("SHIFT"), date, time: `${start}–${end}`, team: cleanTitle, location: details || "Flexible", status: "Available" }, ...current.shifts] };
-      if (kind === "incident") next = { ...current, incidents: [{ id: makeId("INC"), title: cleanTitle, category: type, reported: "Just now", owner: current.profile.name, status: "Reported", confidential: meet }, ...current.incidents] };
-      if (kind === "handover") next = { ...current, handovers: [{ id: makeId("HAND"), shift: cleanTitle, author: current.profile.name, note: details, priority: type, read: false }, ...current.handovers] };
       return { ...next, audit: [{ id: makeId("AUD"), actor: current.profile.name, action: `Created ${kind}: ${cleanTitle}`, area: kind, time: "Just now" }, ...next.audit] };
     });
     notify(draft ? "Draft saved" : `${labels[kind]?.[0] || "Item"} created`);
@@ -575,12 +577,12 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
       <button className="back-button" onClick={back}>← All create options</button>
       <form className="create-form" onSubmit={submit}>
         <label>
-          {kind === "conversation" ? "Conversation name" : kind === "handover" ? "Shift or handover title" : "Title"}
+          {kind === "conversation" ? "Conversation name" : "Title"}
           <input data-initial-focus required value={title} onChange={event => setTitle(event.target.value)} placeholder="Enter a clear title" />
         </label>
-        {(kind === "request" || kind === "conversation" || kind === "leave" || kind === "incident" || kind === "task" || kind === "handover") && (
+        {(kind === "request" || kind === "conversation" || kind === "leave" || kind === "task") && (
           <label>
-            {kind === "task" || kind === "handover" ? "Priority" : "Type"}
+            {kind === "task" ? "Priority" : "Type"}
             <select value={type} onChange={event => setType(event.target.value)}>
               {(kind === "request"
                 ? ["Purchase order", "Expense", "IT access", "Marketing support", "Facilities"]
@@ -588,20 +590,18 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
                 ? ["Channel", "Group", "Direct"]
                 : kind === "leave"
                 ? ["Annual leave", "Sickness", "Work from home", "Unpaid leave"]
-                : kind === "incident"
-                ? ["Vehicle", "Accident", "Complaint", "Safeguarding", "System"]
                 : ["Normal", "High", "Urgent"]
               ).map(value => <option key={value}>{value}</option>)}
             </select>
           </label>
         )}
-        {(kind === "event" || kind === "task" || kind === "leave" || kind === "shift") && (
+        {(kind === "event" || kind === "task" || kind === "leave") && (
           <div className="form-grid">
             <label>
               {kind === "task" ? "Due date" : "Date"}
               <input type="date" value={date} onChange={event => setDate(event.target.value)} />
             </label>
-            {(kind === "event" || kind === "shift") && (
+            {kind === "event" && (
               <>
                 <label>Start<input type="time" value={start} onChange={event => setStart(event.target.value)} /></label>
                 <label>End<input type="time" value={end} onChange={event => setEnd(event.target.value)} /></label>
@@ -625,17 +625,22 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
           </label>
         )}
         <label>
-          {kind === "conversation" ? "First message" : kind === "handover" ? "Handover note" : "Details"}
+          {kind === "conversation" ? "First message" : "Details"}
           <textarea value={details} onChange={event => setDetails(event.target.value)} placeholder="Add useful details" />
         </label>
-        {kind === "event" && <label className="check-row"><input type="checkbox" checked={meet} onChange={event => setMeet(event.target.checked)} /> Add a Google Meet link</label>}
-        {kind === "incident" && <label className="check-row"><input type="checkbox" checked={meet} onChange={event => setMeet(event.target.checked)} /> Keep this report confidential</label>}
+        {kind === "event" && (
+          <label className="check-row">
+            <input type="checkbox" checked={meet} onChange={event => setMeet(event.target.checked)} /> Add Google Meet video call
+          </label>
+        )}
+        {kind === "request" && (
+          <label className="check-row">
+            <input type="checkbox" checked={draft} onChange={event => setDraft(event.target.checked)} /> Save as draft
+          </label>
+        )}
         <div className="modal-actions">
-          {(kind === "request" || kind === "leave") && <button type="submit" className="secondary" onClick={() => setDraft(true)}>Save draft</button>}
           <button type="button" className="secondary" onClick={close}>Cancel</button>
-          <button className="primary" type="submit" onClick={() => setDraft(false)}>
-            {kind === "event" ? "Create event" : kind === "conversation" ? "Create conversation" : kind === "incident" ? "Submit report" : "Create"}
-          </button>
+          <button type="submit" className="primary">{draft ? "Save draft" : `Create ${kind}`}</button>
         </div>
       </form>
     </Modal>
@@ -646,7 +651,7 @@ function UtilityPanel({ type, state, updateState, close, navigate, notify, resta
   const [group, setGroup] = useState("All");
   const groups = ["All", ...Array.from(new Set(state.notifications.map(item => item.group)))];
   const notifications = state.notifications.filter(item => !item.snoozed && (group === "All" || item.group === group));
-  const destination: Record<string, string> = { Approvals: "Action inbox", Calendar: "Calendar", Operations: "Operations", Requests: "Requests" };
+  const destination: Record<string, string> = { Approvals: "Action inbox", Calendar: "Calendar", Leave: "Leave", Requests: "Requests" };
 
   if (type === "help") return <HelpCentre close={close} restartTour={restartTour} navigate={navigate} isAdmin={isAdmin} />;
 
@@ -678,105 +683,100 @@ function UtilityPanel({ type, state, updateState, close, navigate, notify, resta
         ))}
       </div>
       <footer>
-        <button onClick={() => updateState(current => ({ ...current, notifications: current.notifications.map(item => ({ ...item, read: true })) }))}>Mark all as read</button>
-        <button onClick={() => { close(); setTimeout(() => navigate("Home"), 0); notify("Notification preferences are in Profile settings"); }}>Preferences</button>
+        <button className="text-button" onClick={() => { updateState(current => ({ ...current, notifications: current.notifications.map(item => ({ ...item, read: true })) })); notify("All notifications marked read"); }}>Mark all as read</button>
       </footer>
     </div>
   );
 }
 
-function ProfileSettings({ state, updateState, close, notify, installPrompt, setInstallPrompt }: { state: PortalState; updateState: (updater: (current: PortalState) => PortalState) => void; close: () => void; notify: (message: string) => void; installPrompt: DeferredInstall | null; setInstallPrompt: (value: DeferredInstall | null) => void }) {
-  const [draft, setDraft] = useState(state.profile);
-  const [prefs, setPrefs] = useState(state.preferences);
-  const [googleStatus, setGoogleStatus] = useState<{ configured: boolean; connected: boolean; email: string } | null>(null);
+function ProfileSettings({ state, updateState, close, notify, installPrompt, setInstallPrompt }: { state: PortalState; updateState: (updater: (current: PortalState) => PortalState) => void; close: () => void; notify: (message: string) => void; installPrompt: DeferredInstall | null; setInstallPrompt: (prompt: DeferredInstall | null) => void }) {
+  const [name, setName] = useState(state.profile.name);
+  const [jobTitle, setJobTitle] = useState(state.profile.jobTitle);
+  const [phone, setPhone] = useState(state.profile.phone);
+  const [timezone, setTimezone] = useState(state.profile.timezone);
 
-  const refreshGoogleStatus = async () => {
-    const response = await fetch("/api/google/status");
-    const result = await response.json() as { configured?: boolean; connected?: boolean; email?: string };
-    if (response.ok) setGoogleStatus({ configured: Boolean(result.configured), connected: Boolean(result.connected), email: result.email || "" });
-  };
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/google/status").then(response => response.json()).then((result: { configured?: boolean; connected?: boolean; email?: string }) => {
-      if (active) setGoogleStatus({ configured: Boolean(result.configured), connected: Boolean(result.connected), email: result.email || "" });
-    }).catch(() => undefined);
-    return () => { active = false; };
-  }, []);
-
-  const disconnectGoogle = async () => {
-    if (!window.confirm("Disconnect Google Calendar and Drive from your portal account?")) return;
-    const response = await fetch("/api/google/status", { method: "DELETE" });
-    if (!response.ok) return notify("Google account could not be disconnected");
-    await refreshGoogleStatus();
-    notify("Google account disconnected");
+  const save = (event: React.FormEvent) => {
+    event.preventDefault();
+    updateState(current => ({
+      ...current,
+      profile: { ...current.profile, name: name.trim() || current.profile.name, jobTitle: jobTitle.trim(), phone: phone.trim(), timezone },
+    }));
+    notify("Profile preferences saved");
+    close();
   };
 
   const install = async () => {
-    if (!installPrompt) return notify("Use your browser’s Install app option to add the portal");
-    await installPrompt.prompt();
-    const choice = await installPrompt.userChoice;
-    if (choice.outcome === "accepted") notify("Portal installed");
-    setInstallPrompt(null);
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      if (choice.outcome === "accepted") notify("Portal installed");
+      setInstallPrompt(null);
+      return;
+    }
+    notify("Use your browser's Install app option or Share → Add to Home Screen");
   };
 
   return (
-    <Modal title="Profile and preferences" eyebrow="MY ACCOUNT" close={close} className="profile-modal">
-      <form onSubmit={event => { event.preventDefault(); updateState(current => ({ ...current, profile: draft, preferences: prefs })); notify("Profile and preferences saved"); close(); }}>
-        <div className="profile-heading">
-          <i>{initials(draft.name)}</i>
-          <span><b>{draft.name || "Muneeb Rizwan"}</b><small>Take Me Group</small></span>
-          <button type="button" className="secondary" onClick={() => notify("Profile photo uploads are not enabled yet")}>Change photo</button>
+    <Modal title="Profile and preferences" eyebrow="PERSONAL SETTINGS" close={close} className="profile-modal">
+      <form className="create-form" onSubmit={save}>
+        <div className="profile-head">
+          <i>{name.split(" ").map(part => part[0]).slice(0, 2).join("")}</i>
+          <div>
+            <h3>{name}</h3>
+            <p>{state.profile.email}</p>
+          </div>
         </div>
+
         <div className="form-grid">
-          <label>Full name<input value={draft.name} onChange={event => setDraft({ ...draft, name: event.target.value })} /></label>
-          <label>Job title<input value={draft.jobTitle} onChange={event => setDraft({ ...draft, jobTitle: event.target.value })} /></label>
-          <label>Department<input value={draft.department} onChange={event => setDraft({ ...draft, department: event.target.value })} /></label>
-          <label>Company sign-in email<input type="email" value={draft.email} readOnly title="Managed by your company sign-in" /></label>
-          <label>Phone number<input value={draft.phone} onChange={event => setDraft({ ...draft, phone: event.target.value })} placeholder="Add a work number" /></label>
-          <label>Time zone<select value={draft.timezone} onChange={event => setDraft({ ...draft, timezone: event.target.value })}><option value="Europe/London">London (GMT/BST)</option><option value="Asia/Karachi">Karachi (PKT)</option></select></label>
+          <label>Full name<input value={name} onChange={event => setName(event.target.value)} /></label>
+          <label>Job title<input value={jobTitle} onChange={event => setJobTitle(event.target.value)} placeholder="e.g. Operations Coordinator" /></label>
         </div>
-        <section className="preference-box">
-          <h3>Appearance and accessibility</h3>
-          <Toggle title="Dark mode" description="Use a darker colour theme." checked={prefs.theme === "dark"} onChange={value => setPrefs({ ...prefs, theme: value ? "dark" : "light" })} />
-          <Toggle title="Larger text" description="Increase important text throughout the portal." checked={prefs.textSize === "large"} onChange={value => setPrefs({ ...prefs, textSize: value ? "large" : "normal" })} />
-          <Toggle title="High contrast" description="Strengthen borders and interactive colours." checked={prefs.highContrast} onChange={value => setPrefs({ ...prefs, highContrast: value })} />
-          <Toggle title="Reduce motion" description="Minimise interface animation." checked={prefs.reducedMotion} onChange={value => setPrefs({ ...prefs, reducedMotion: value })} />
+
+        <div className="form-grid">
+          <label>Contact phone<input value={phone} onChange={event => setPhone(event.target.value)} placeholder="+44 7700 900077" /></label>
+          <label>
+            Time zone
+            <select value={timezone} onChange={event => setTimezone(event.target.value)}>
+              <option value="Europe/London">Europe/London (GMT/BST)</option>
+              <option value="Europe/Paris">Europe/Paris (CET)</option>
+              <option value="America/New_York">America/New York (EST)</option>
+              <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+            </select>
+          </label>
+        </div>
+
+        <section className="pref-section">
+          <h3>Display & accessibility</h3>
+          <div className="pref-grid">
+            <Toggle title="Dark mode" description="Sleek dark interface for lower eye strain" checked={state.preferences.theme === "dark"} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, theme: value ? "dark" : "light" } }))} />
+            <Toggle title="Large text" description="Increase interface font sizing" checked={state.preferences.textSize === "large"} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, textSize: value ? "large" : "normal" } }))} />
+            <Toggle title="High contrast" description="Sharpen borders and boost text contrast" checked={state.preferences.highContrast} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, highContrast: value } }))} />
+            <Toggle title="Reduced motion" description="Minimize interface animations" checked={state.preferences.reducedMotion} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, reducedMotion: value } }))} />
+          </div>
         </section>
-        <section className="preference-box">
+
+        <section className="pref-section">
           <h3>Notifications</h3>
-          <Toggle title="Email notifications" description="Receive request and company updates by email." checked={prefs.emailNotifications} onChange={value => setPrefs({ ...prefs, emailNotifications: value })} />
-          <Toggle title="Desktop notifications" description="Show important updates while the portal is open." checked={prefs.browserNotifications} onChange={value => setPrefs({ ...prefs, browserNotifications: value })} />
-          <Toggle title="Weekly digest" description="Receive a summary every Monday morning." checked={prefs.weeklyDigest} onChange={value => setPrefs({ ...prefs, weeklyDigest: value })} />
-          <Toggle title="Quiet hours" description="Pause non-urgent alerts outside working hours." checked={prefs.quietHours} onChange={value => setPrefs({ ...prefs, quietHours: value })} />
+          <div className="pref-grid">
+            <Toggle title="Email notifications" description="Receive email summaries of approvals" checked={state.preferences.emailNotifications} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, emailNotifications: value } }))} />
+            <Toggle title="Browser alerts" description="Show notifications for urgent updates" checked={state.preferences.browserNotifications} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, browserNotifications: value } }))} />
+            <Toggle title="Weekly digest" description="Weekly recap of announcements and team highlights" checked={state.preferences.weeklyDigest} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, weeklyDigest: value } }))} />
+          </div>
         </section>
-        <div className="install-row">
-          <div>
-            <b>Google Calendar and Drive</b>
-            <small>{googleStatus?.connected ? `Connected as ${googleStatus.email}` : googleStatus?.configured ? "Connect your company Google account." : "Waiting for an administrator to configure OAuth."}</small>
-          </div>
-          {googleStatus?.connected ? (
-            <button type="button" className="secondary" onClick={disconnectGoogle}>Disconnect</button>
-          ) : (
-            <button type="button" className="secondary" disabled={!googleStatus?.configured} onClick={() => window.location.assign("/api/auth/google/start")}>Connect Google</button>
-          )}
-        </div>
-        <div className="install-row">
-          <div>
-            <b>Install Take Me Portal</b>
-            <small>Add it to your phone or computer for faster access.</small>
-          </div>
-          <button type="button" className="secondary" onClick={install}>Install portal</button>
-        </div>
+
+        <section className="pref-section">
+          <h3>Mobile experience</h3>
+          <p className="pref-desc">Install the portal on your phone or desktop for quick access.</p>
+          <button type="button" className="secondary" onClick={install}>Install Take Me app</button>
+        </section>
+
         <div className="modal-actions">
           <button type="button" className="secondary" onClick={close}>Cancel</button>
-          <button className="primary" type="submit">Save changes</button>
+          <button type="submit" className="primary">Save preferences</button>
         </div>
       </form>
     </Modal>
   );
 }
 
-function initials(name: string) {
-  return name.split(" ").filter(Boolean).map(part => part[0]).slice(0, 2).join("").toUpperCase() || "TM";
-}
+const initials = (name: string) => name.split(" ").map(part => part[0]).join("").slice(0, 2).toUpperCase();

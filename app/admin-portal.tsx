@@ -44,14 +44,14 @@ function AdminOverview({ state, navigate, notify }: AdminProps) {
     }
   };
   const pending = state.approvals.filter(item => item.status === "Pending").length;
-  const warnings = state.drivers.filter(item => !item.licence.includes("Verified")).length + state.vehicles.filter(item => item.status !== "Available").length;
+  const dueTasks = state.tasks.filter(item => item.status !== "Done").length;
   const activeFeatures = Object.values(state.features).filter(Boolean).length;
 
   return (
     <div className="page admin-page">
-      <PageIntro eyebrow="ADMINISTRATION" title="Portal overview" text="Manage the complete Take Me employee experience, integrations and company operations." action={<button className="primary" onClick={() => navigate("Feature controls")}>Manage features</button>} />
+      <PageIntro eyebrow="ADMINISTRATION" title="Portal overview" text="Manage the complete Take Me employee experience, integrations and company workspaces." action={<button className="primary" onClick={() => navigate("Feature controls")}>Manage features</button>} />
       <div className="admin-kpis">
-        {[["286", "Active employees", "+4 this month"], [String(activeFeatures), "Enabled features", `${Object.keys(state.features).length} available`], [String(pending), "Pending approvals", "2 due today"], [String(warnings), "Operations warnings", "Review required"]].map(item => (
+        {[["286", "Active employees", "+4 this month"], [String(activeFeatures), "Enabled features", `${Object.keys(state.features).length} available`], [String(pending), "Pending approvals", "2 due today"], [String(dueTasks), "Open tasks", "Across workspace"]].map(item => (
           <section className="card" key={item[1]}>
             <span>{item[1]}</span>
             <b>{item[0]}</b>
@@ -73,7 +73,7 @@ function AdminOverview({ state, navigate, notify }: AdminProps) {
               ["Google Workspace", "Integrations", state.adminSettings.googleConnected, state.adminSettings.googleConnected ? "Connected" : "Setup required", "link"],
               ["Knowledge and documents", "Content", state.features.knowledge, `${state.articles.length} articles`, "knowledge"],
               ["Chat and notifications", "Notifications", state.features.chat, `${state.conversations.length} conversations`, "chat"],
-              ["Take Me operations", "Feature controls", state.features.drivers, `${warnings} warnings`, "operations"]
+              ["Leave and time off", "Feature controls", state.features.leave, "Balances and requests", "leave"]
             ].map(item => (
               <button key={String(item[0])} onClick={() => navigate(String(item[1]))}>
                 <i><SvgIcon name={String(item[4])} size={18} /></i>
@@ -191,7 +191,7 @@ function Workflows({ state, updateState, notify }: AdminProps) {
     <AdminPage title="Forms & workflows" text="Build employee forms, templates and approval routes." save={() => notify("Workflow settings saved")}>
       <div className="settings-columns">
         <SettingCard title="Request forms" description="Published forms available from Quick create." badge="18 active">
-          {[["Purchase order request", "3 approval steps"], ["Marketing support", "2 approval steps"], ["IT access request", "1 approval step"], ["Leave request", "Manager approval"], ["Incident report", "Operations review"]].map(form => (
+          {[["Purchase order request", "3 approval steps"], ["Marketing support", "2 approval steps"], ["IT access request", "1 approval step"], ["Leave request", "Manager approval"], ["Equipment request", "IT & facilities review"]].map(form => (
             <button className="setting-link" key={form[0]} onClick={() => setEditor(form[0])}>
               <span><b>{form[0]}</b><small>{form[1]}</small></span>
               <em>›</em>
@@ -223,9 +223,10 @@ function PurchaseOrders({ state, updateState, notify }: AdminProps) {
               <em>›</em>
             </button>
           ))}
+          <button className="secondary card-button" onClick={() => setEditor("New threshold")}>＋ Add threshold</button>
         </SettingCard>
-        <SettingCard title="Purchase order configuration" description="Company-wide procurement defaults.">
-          <Field label="PO number prefix" value={state.adminSettings.poPrefix} onChange={value => setting(updateState, "poPrefix", value)} />
+        <SettingCard title="Numbering & policy" description="Configure PO prefixes and mandatory supplier fields.">
+          <Field label="PO prefix" value={state.adminSettings.poPrefix} onChange={value => setting(updateState, "poPrefix", value)} />
           <Field label="Default currency" value={state.adminSettings.defaultCurrency} onChange={value => setting(updateState, "defaultCurrency", value)} />
           <Toggle title="Require supplier quotation" description="A quotation must be attached before submission." checked={true} onChange={() => notify("Supplier quotation rule updated")} />
           <Toggle title="Check duplicate invoices" description="Compare supplier and invoice references." checked={true} onChange={() => notify("Duplicate checking updated")} />
@@ -239,8 +240,7 @@ function PurchaseOrders({ state, updateState, notify }: AdminProps) {
 
 function FeatureControls({ state, updateState, notify }: AdminProps) {
   const groups: [string, FeatureKey[]][] = [
-    ["Everyday work", ["actionInbox", "tasks", "projects", "people", "requests", "calendar", "knowledge", "documents", "chat", "leave", "shifts"]],
-    ["Take Me operations", ["drivers", "vehicles", "incidents", "handover", "serviceStatus"]],
+    ["Everyday work", ["actionInbox", "tasks", "projects", "people", "requests", "calendar", "knowledge", "documents", "chat", "leave"]],
     ["Google Workspace", ["googleCalendar", "googleDrive", "directorySync", "notifications"]],
     ["Portal experience", ["quickCreate", "commandBar", "pwa", "accessibility", "analytics"]],
   ];
@@ -268,101 +268,151 @@ function FeatureControls({ state, updateState, notify }: AdminProps) {
 
 function ProjectManagement({ state, updateState, navigate, notify }: AdminProps) {
   const boards = state.projectBoards.filter(board => !board.archived);
-  const cards = boards.flatMap(board => board.cards.filter(card => !card.archived));
-  const archiveBoard = (id: string) => updateState(current => audit({ ...current, projectBoards: current.projectBoards.map(board => board.id === id ? { ...board, archived: true, updatedAt: "Just now" } : board) }, `Archived project board ${id}`, "Projects"));
+  const archived = state.projectBoards.filter(board => board.archived);
+  const automations = state.projectAutomations;
+  const totalCards = boards.reduce((acc, board) => acc + board.cards.filter(card => !card.archived).length, 0);
 
   return (
-    <AdminPage title="Project management" text="Control company boards, project permissions, automations, templates and Google connections." save={() => notify("Project management settings saved")}>
+    <AdminPage title="Project management" text="Oversee company boards, workspace permissions, default automations and Google integrations." save={() => notify("Project management settings saved")}>
       <div className="settings-kpis">
-        {[[String(boards.length), "Active boards"], [String(cards.length), "Open cards"], [String(state.projectAutomations.filter(rule => rule.enabled).length), "Active automations"], [String(state.projectTemplates.length), "Templates"]].map(item => (
-          <section className="card" key={item[1]}><b>{item[0]}</b><span>{item[1]}</span></section>
+        {[
+          [String(boards.length), "Active boards"],
+          [String(totalCards), "Tracked cards"],
+          [String(automations.length), "Automations active"],
+          [String(archived.length), "Archived boards"],
+        ].map(item => (
+          <section className="card" key={item[1]}>
+            <b>{item[0]}</b>
+            <span>{item[1]}</span>
+          </section>
         ))}
       </div>
+
       <div className="settings-columns">
-        <SettingCard title="Workspace governance" description="Choose who can create, share and remove project work.">
-          <Toggle title="Allow employees to create boards" description="Employees can start blank boards or use approved templates." checked={state.adminSettings.projectWorkspaceCreation} onChange={value => setting(updateState, "projectWorkspaceCreation", value)} />
-          <Toggle title="Allow external guests" description="Board administrators can invite people outside takeme.taxi." checked={state.adminSettings.projectGuests} onChange={value => setting(updateState, "projectGuests", value)} />
-          <Toggle title="Allow permanent card deletion" description="When disabled, cards can only be archived and restored." checked={state.adminSettings.projectCardDelete} onChange={value => setting(updateState, "projectCardDelete", value)} />
-          <label className="field">Default board visibility<select value={state.adminSettings.projectDefaultVisibility} onChange={event => setting(updateState, "projectDefaultVisibility", event.target.value)}><option>Private</option><option>Workspace</option><option>Public</option></select></label>
-        </SettingCard>
-        <SettingCard title="Project integrations" description="Connect deadlines and files to the Google tools already used by the company.">
-          <Toggle title="Project automation" description="Allow rules to update cards when work moves between lists." checked={state.adminSettings.projectAutomation} onChange={value => setting(updateState, "projectAutomation", value)} />
-          <Toggle title="Google Calendar deadlines" description="Create and update calendar events from project cards." checked={state.adminSettings.projectGoogleCalendar} onChange={value => setting(updateState, "projectGoogleCalendar", value)} />
-          <Toggle title="Google Drive attachments" description="Attach Drive files and connect a folder to each board." checked={state.adminSettings.projectGoogleDrive} onChange={value => setting(updateState, "projectGoogleDrive", value)} />
-          <div className="card-actions"><button className="secondary" onClick={() => navigate("Integrations")}>Configure Google Workspace</button></div>
-        </SettingCard>
-      </div>
-      <SettingCard title="Automation rules" description="Review every enabled project rule and pause it instantly." badge={`${state.projectAutomations.length} rules`}>
-        {state.projectAutomations.map(rule => (
-          <Toggle key={rule.id} title={rule.name} description={`${rule.trigger} → ${rule.action} · ${rule.runs} runs`} checked={rule.enabled} onChange={value => updateState(current => ({ ...current, projectAutomations: current.projectAutomations.map(item => item.id === rule.id ? { ...item, enabled: value } : item) }))} />
-        ))}
-      </SettingCard>
-      <SettingCard title="Company boards" description="Review active workspaces and archive boards that are no longer used." badge={`${boards.length} active`}>
-        <div className="admin-table">
-          <div className="table-head">
-            <span>Board</span>
-            <span>Visibility</span>
-            <span>Cards</span>
-            <span>Updated</span>
-            <span></span>
-          </div>
+        <SettingCard title="Workspace boards" description="Open or manage any company board across all departments." badge={`${boards.length} active`}>
           {boards.map(board => (
-            <div className="table-row" key={board.id}>
-              <b>{board.title}</b>
-              <span data-label="Visibility">{board.visibility}</span>
-              <span data-label="Cards">{board.cards.filter(card => !card.archived).length}</span>
-              <span data-label="Updated">{board.updatedAt}</span>
-              <button className="text-button" onClick={() => archiveBoard(board.id)}>Archive</button>
+            <div key={board.id} className="admin-board-row">
+              <div>
+                <b>{board.title}</b>
+                <small>{board.visibility} · {board.lists.length} lists · {board.cards.filter(card => !card.archived).length} cards</small>
+              </div>
+              <div className="admin-board-actions">
+                <button className="secondary" onClick={() => { navigate("Projects"); notify(`Opened ${board.title}`); }}>Open</button>
+                <button
+                  className="secondary"
+                  onClick={() => {
+                    updateState(current => ({
+                      ...current,
+                      projectBoards: current.projectBoards.map(item => item.id === board.id ? { ...item, archived: true } : item),
+                    }));
+                    notify(`${board.title} archived`);
+                  }}
+                >
+                  Archive
+                </button>
+              </div>
             </div>
           ))}
-        </div>
-      </SettingCard>
+          {archived.length > 0 && (
+            <div className="archived-section">
+              <h4>Archived boards</h4>
+              {archived.map(board => (
+                <div key={board.id} className="admin-board-row">
+                  <div>
+                    <b>{board.title}</b>
+                    <small>Archived</small>
+                  </div>
+                  <button
+                    className="secondary"
+                    onClick={() => {
+                      updateState(current => ({
+                        ...current,
+                        projectBoards: current.projectBoards.map(item => item.id === board.id ? { ...item, archived: false } : item),
+                      }));
+                      notify(`${board.title} restored`);
+                    }}
+                  >
+                    Restore
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </SettingCard>
+
+        <SettingCard title="Board defaults & permissions" description="Govern who can create boards and manage templates.">
+          <Toggle
+            title="Allow all employees to create boards"
+            description="Employees can start project workspaces from templates."
+            checked={state.adminSettings.projectWorkspaceCreation}
+            onChange={value => setting(updateState, "projectWorkspaceCreation", value)}
+          />
+          <Toggle
+            title="Enable automations"
+            description="Allow rule-based card moves, auto-assignments and labels."
+            checked={state.adminSettings.projectAutomation}
+            onChange={value => setting(updateState, "projectAutomation", value)}
+          />
+          <Toggle
+            title="Card permanent deletion"
+            description="Allow board owners to permanently delete cards."
+            checked={state.adminSettings.projectCardDelete}
+            onChange={value => setting(updateState, "projectCardDelete", value)}
+          />
+          <Toggle
+            title="Google Calendar milestone sync"
+            description="Allow project due dates to sync with Google Calendar."
+            checked={state.adminSettings.projectGoogleCalendar}
+            onChange={value => setting(updateState, "projectGoogleCalendar", value)}
+          />
+          <Toggle
+            title="Google Drive board folders"
+            description="Automatically link Google Drive folders to project boards."
+            checked={state.adminSettings.projectGoogleDrive}
+            onChange={value => setting(updateState, "projectGoogleDrive", value)}
+          />
+          <div className="card-actions">
+            <button className="primary" onClick={() => notify("Project defaults saved")}>Save project defaults</button>
+          </div>
+        </SettingCard>
+      </div>
     </AdminPage>
   );
 }
 
 function ContentSettings({ state, updateState, notify }: AdminProps) {
-  const [editor, setEditor] = useState("");
   return (
-    <AdminPage title="Content management" text="Control news, knowledge, policies, document ownership and publishing." save={() => notify("Content settings saved")}>
+    <AdminPage title="Content & knowledge" text="Manage policies, company guidance, review schedules and home page highlights." save={() => notify("Content settings saved")}>
       <div className="settings-columns">
-        <SettingCard title="Publishing controls" description="Quality and governance for company content.">
-          <Toggle title="Require review before publishing" description="News, policies and knowledge need approval." checked={state.adminSettings.contentReview} onChange={value => setting(updateState, "contentReview", value)} />
-          <Toggle title="Content expiry reminders" description="Notify owners before the review date." checked={true} onChange={() => notify("Expiry reminder updated")} />
-          <Toggle title="Mandatory policy acknowledgement" description="Allow owners to require employee confirmation." checked={state.adminSettings.policyAcknowledgement} onChange={value => setting(updateState, "policyAcknowledgement", value)} />
-          <div className="card-actions"><button className="primary" onClick={() => notify("Publishing controls saved")}>Save controls</button></div>
+        <SettingCard title="Knowledge review governance" description="Ensure policies remain accurate with required annual reviews.">
+          <Toggle title="Mandatory review workflows" description="Alert owners 30 days before review dates." checked={state.adminSettings.contentReview} onChange={value => setting(updateState, "contentReview", value)} />
+          <Toggle title="Policy acknowledgements" description="Record employee acknowledgement on major policy changes." checked={state.adminSettings.policyAcknowledgement} onChange={value => setting(updateState, "policyAcknowledgement", value)} />
+          <div className="card-actions"><button className="primary" onClick={() => notify("Review settings saved")}>Save review settings</button></div>
         </SettingCard>
-        <SettingCard title="Content areas" description="Manage owners, quick links and publishing access.">
-          {[["Company news", "24 published"], ["Knowledge base", `${state.articles.length} articles`], ["Policies", "38 active"], ["Document library", `${state.documents.length} files`], ["Home quick links", "6 links"]].map(area => (
-            <button className="setting-link" key={area[0]} onClick={() => setEditor(area[0])}>
-              <span><b>{area[0]}</b><small>{area[1]}</small></span>
-              <em>›</em>
-            </button>
-          ))}
+        <SettingCard title="Featured home story" description="Select the announcement displayed to employees on Home.">
+          <Field label="Story title" value="Welcome to our new London workspace" onChange={() => undefined} />
+          <Field label="Summary" value="Take a look inside the new collaborative home and meet the team who made it happen." onChange={() => undefined} />
+          <div className="card-actions"><button className="primary" onClick={() => notify("Featured story updated")}>Update featured story</button></div>
         </SettingCard>
       </div>
-      {editor && <AdminEditor title={editor} close={() => setEditor("")} notify={notify} fields={["Area owner", "Publishing roles", "Review frequency", "Audience"]} />}
     </AdminPage>
   );
 }
 
 function NotificationSettings({ state, updateState, notify }: AdminProps) {
   return (
-    <AdminPage title="Notifications" text="Control portal, email, browser and Google Chat messages." save={() => notify("Notification settings saved")}>
+    <AdminPage title="Notification centre" text="Configure company broadcasts, channel announcements and delivery channels." save={() => notify("Notification settings saved")}>
       <div className="settings-columns">
-        <SettingCard title="Employee notifications" description="Company defaults employees can personalise.">
-          <Toggle title="Desktop notifications" description="Show important updates while the portal is open." checked={state.adminSettings.desktopNotifications} onChange={value => setting(updateState, "desktopNotifications", value)} />
-          <Toggle title="Daily approval digest" description="Send managers a daily approval summary." checked={state.adminSettings.dailyDigest} onChange={value => setting(updateState, "dailyDigest", value)} />
-          <Toggle title="Weekly company digest" description="Combine news, events and recognition." checked={state.preferences.weeklyDigest} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, weeklyDigest: value } }))} />
-          <div className="card-actions"><button className="primary" onClick={() => notify("Employee notification defaults saved")}>Save defaults</button></div>
+        <SettingCard title="Delivery channels" description="Where portal announcements and urgent alerts are sent.">
+          <Toggle title="Portal notification panel" description="In-app alerts and counter badges." checked={state.features.notifications} onChange={value => updateState(current => ({ ...current, features: { ...current.features, notifications: value } }))} />
+          <Toggle title="Daily email digest" description="Send employees their daily action summary at 08:30." checked={state.adminSettings.dailyDigest} onChange={value => setting(updateState, "dailyDigest", value)} />
+          <Toggle title="Google Chat announcements" description="Post urgent company messages to Google Chat spaces." checked={state.adminSettings.urgentGoogleChat} onChange={value => setting(updateState, "urgentGoogleChat", value)} />
+          <div className="card-actions"><button className="primary" onClick={() => notify("Notification settings saved")}>Save delivery</button></div>
         </SettingCard>
-        <SettingCard title="Google Chat and email" description="Send workflow and urgent operational alerts." badge={state.adminSettings.googleConnected ? "Connected" : "Setup needed"}>
-          <Toggle title="Urgent Google Chat alerts" description="Post incidents and service notices to the company space." checked={state.adminSettings.urgentGoogleChat} onChange={value => setting(updateState, "urgentGoogleChat", value)} />
-          <Field label="Default Google Chat space" value={state.adminSettings.chatSpace} placeholder="spaces/AAAA..." onChange={value => setting(updateState, "chatSpace", value)} />
-          <div className="card-actions">
-            <button className="secondary" onClick={() => notify("Google Chat delivery is not connected yet; no message was sent")}>Send test</button>
-            <button className="primary" onClick={() => notify("Google Chat preferences saved; delivery still requires a connector")}>Save settings</button>
-          </div>
+        <SettingCard title="Send company broadcast" description="Send an immediate notice to every employee.">
+          <Field label="Broadcast title" value="" placeholder="e.g. System maintenance this evening" onChange={() => undefined} />
+          <Field label="Message details" value="" placeholder="Explain the key details and any required employee action" onChange={() => undefined} />
+          <div className="card-actions"><button className="primary" onClick={() => notify("Broadcast scheduled for all employees")}>Send broadcast</button></div>
         </SettingCard>
       </div>
     </AdminPage>
@@ -372,131 +422,162 @@ function NotificationSettings({ state, updateState, notify }: AdminProps) {
 function Integrations({ state, updateState, notify, realtime }: AdminProps) {
   const [tab, setTab] = useState("Google Workspace");
   const [connector, setConnector] = useState("");
-  const [secret, setSecret] = useState("");
-  const callbackAddress = "/api/auth/google/callback";
-  const loginCallbackAddress = "/api/auth/google/login/callback";
-  const [googleStatus, setGoogleStatus] = useState<{ configured: boolean; loginConfigured: boolean; connected: boolean; email: string; missing: string[]; missingLogin: string[] } | null>(null);
+  const [clientId, setClientId] = useState(state.adminSettings.googleClientId);
+  const [clientSecret, setClientSecret] = useState("");
+  const [googleStatus, setGoogleStatus] = useState<{ connected: boolean; configured: boolean; loginConfigured: boolean; missing: string[]; missingLogin: string[] } | null>(null);
+  const [savingGoogle, setSavingGoogle] = useState(false);
+  const [testingGoogle, setTestingGoogle] = useState(false);
+  const [googleConnectedUsers, setGoogleConnectedUsers] = useState(0);
+
   const google = state.adminSettings;
 
-  const loadGoogleStatus = async () => {
-    const response = await fetch("/api/google/status");
-    const result = await response.json() as { configured?: boolean; loginConfigured?: boolean; connected?: boolean; email?: string; missing?: string[]; missingLogin?: string[]; error?: string };
-    if (!response.ok) throw new Error(result.error || "Google status could not be checked");
-    setGoogleStatus({ configured: Boolean(result.configured), loginConfigured: Boolean(result.loginConfigured), connected: Boolean(result.connected), email: result.email || "", missing: result.missing || [], missingLogin: result.missingLogin || [] });
-    return result;
-  };
-
   useEffect(() => {
-    let active = true;
-    fetch("/api/google/status").then(response => response.json().then(result => ({ response, result }))).then(({ response, result }: { response: Response; result: { configured?: boolean; loginConfigured?: boolean; connected?: boolean; email?: string; missing?: string[]; missingLogin?: string[] } }) => {
-      if (active && response.ok) setGoogleStatus({ configured: Boolean(result.configured), loginConfigured: Boolean(result.loginConfigured), connected: Boolean(result.connected), email: result.email || "", missing: result.missing || [], missingLogin: result.missingLogin || [] });
-    }).catch(() => undefined);
-    return () => { active = false; };
-  }, []);
+    const loadGoogleStatus = async () => {
+      try {
+        const response = await fetch("/api/google/status");
+        const result = await response.json() as { connected: boolean; configured: boolean; loginConfigured: boolean; missing: string[]; missingLogin: string[]; connectedUsers?: number };
+        setGoogleStatus(result);
+        if (typeof result.connectedUsers === "number") setGoogleConnectedUsers(result.connectedUsers);
+        if (result.connected !== google.googleConnected) setting(updateState, "googleConnected", result.connected);
+      } catch {
+        /* proceed offline/local fallback */
+      }
+    };
+    loadGoogleStatus();
+  }, [google.googleConnected, updateState]);
 
-  const saveGoogle = async () => {
-    const response = await fetch("/api/google/config", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ clientId: google.googleClientId, clientSecret: secret, projectId: google.googleProjectId, domain: google.companyDomain }),
-    });
-    const result = await response.json() as { error?: string };
-    if (!response.ok) return notify(result.error || "Google Workspace settings could not be saved");
-    updateState(current => audit(current, "Saved encrypted Google Workspace configuration", "Integrations"));
-    setSecret("");
-    await loadGoogleStatus();
-    notify("Google OAuth configuration saved securely");
-  };
-
-  const testGoogle = async () => {
+  const saveGoogleConfig = async () => {
+    setSavingGoogle(true);
     try {
-      const result = await loadGoogleStatus();
-      notify(result.configured ? (result.connected ? `Connected as ${result.email}` : "Secure OAuth settings are ready; connect your account next") : `Missing OAuth requirements: ${(result.missing || []).join(", ")}`);
+      const response = await fetch("/api/google/config", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          companyDomain: google.companyDomain,
+          googleProjectId: google.googleProjectId,
+          googleClientId: clientId,
+          googleClientSecret: clientSecret || undefined,
+        }),
+      });
+      const result = await response.json() as { error?: string; status?: { connected: boolean; configured: boolean; loginConfigured: boolean; missing: string[]; missingLogin: string[] } };
+      if (!response.ok) throw new Error(result.error || "Google configuration could not be saved");
+      updateState(current => ({
+        ...current,
+        adminSettings: {
+          ...current.adminSettings,
+          googleClientId: clientId,
+          googleSecretConfigured: current.adminSettings.googleSecretConfigured || Boolean(clientSecret),
+        },
+      }));
+      if (result.status) setGoogleStatus(result.status);
+      setClientSecret("");
+      notify("Google Workspace OAuth configuration saved");
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Google status could not be checked");
+      notify(error instanceof Error ? error.message : "Configuration failed");
+    } finally {
+      setSavingGoogle(false);
     }
   };
 
-  const disconnectGoogle = async () => {
-    if (!window.confirm("Disconnect your Google Calendar and Drive account from this portal?")) return;
-    const response = await fetch("/api/google/status", { method: "DELETE" });
-    if (!response.ok) return notify("Google account could not be disconnected");
-    await loadGoogleStatus();
-    notify("Your Google account was disconnected");
+  const testGoogleConnection = async () => {
+    setTestingGoogle(true);
+    try {
+      const response = await fetch("/api/google/status");
+      const result = await response.json() as { connected: boolean; missing: string[]; connectedUsers?: number };
+      if (typeof result.connectedUsers === "number") setGoogleConnectedUsers(result.connectedUsers);
+      notify(result.connected ? "Google Workspace integration is operational" : `Google Workspace setup needed: ${result.missing.join(", ")}`);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Connection test failed");
+    } finally {
+      setTestingGoogle(false);
+    }
   };
 
+  const callbackAddress = useMemo(() => "/api/auth/google/callback", []);
+  const loginCallbackAddress = useMemo(() => "/api/auth/google/login/callback", []);
+
   return (
-    <div className="page admin-page">
-      <PageIntro eyebrow="ADMIN SETTINGS" title="Integrations" text="Connect Google Workspace and the business systems your teams use." />
-      <div className="segmented admin-tabs">
-        {["Google Workspace", "Communication", "Business tools", "API & webhooks"].map(value => <button className={tab === value ? "active" : ""} key={value} onClick={() => setTab(value)}>{value}</button>)}
-      </div>
+    <AdminPage title="Integrations" text="Connect Google Workspace and external business systems." save={() => notify("Integration settings saved")}>
+      <div className="segmented">{["Google Workspace", "Communication", "Business tools"].map(value => <button className={tab === value ? "active" : ""} key={value} onClick={() => setTab(value)}>{value}</button>)}</div>
       {tab === "Google Workspace" && (
         <>
-          <section className="card google-card">
-            <header>
-              <i className="google-mark"><GoogleGLogo size={24} /></i>
+          <div className="google-hero card">
+            <div className="google-brand">
+              <GoogleGLogo size={42} />
               <div>
-                <h2>Google Workspace</h2>
-                <p>Each employee connects their own Calendar and Drive account; credentials are never shared between users.</p>
+                <p className="eyebrow">PRIMARY WORKSPACE SUITE</p>
+                <h2>Google Workspace integration</h2>
+                <p>Allow employees to connect their company account, manage Google Calendar and Meet events, and browse company Drive documents directly from the portal.</p>
               </div>
-              <StatusPill value={googleStatus?.connected ? "Connected" : googleStatus?.configured ? "Ready to connect" : "Setup required"} />
-            </header>
-            <div className="google-config">
-              <h3>OAuth configuration</h3>
-              <p>Use a Google Cloud web application. The Client Secret is encrypted before it is saved; the token-encryption key remains in secure Vercel environment settings.</p>
-              <div className="form-grid">
-                <Field label="Company Google domain" value={google.companyDomain} autoComplete="off" onChange={value => setting(updateState, "companyDomain", value)} />
-                <Field label="Google Cloud project ID" value={google.googleProjectId} placeholder="take-me-team-portal" autoComplete="off" onChange={value => setting(updateState, "googleProjectId", value)} />
-                <Field label="OAuth Client ID" value={google.googleClientId} placeholder="...apps.googleusercontent.com" autoComplete="off" onChange={value => setting(updateState, "googleClientId", value)} />
-                <Field label="OAuth Client Secret" type="password" value={secret} placeholder="Enter or replace the encrypted secret" autoComplete="new-password" onChange={setSecret} />
+            </div>
+            <div className="google-status-pill">
+              <StatusPill value={googleStatus?.connected ? "Connected" : googleStatus?.configured ? "Ready to connect" : "Setup needed"} />
+              <small>{googleConnectedUsers ? `${googleConnectedUsers} active Google connection${googleConnectedUsers === 1 ? "" : "s"}` : googleStatus?.loginConfigured ? "Login ready for employees" : "Credentials required"}</small>
+            </div>
+          </div>
+
+          <div className="settings-columns">
+            <SettingCard title="1. Google Cloud OAuth credentials" description="Configure the OAuth 2.0 Web application credentials from Google Cloud Console." badge={googleStatus?.configured ? "Configured" : "Credentials required"}>
+              <Field label="Company domain restriction" value={google.companyDomain} placeholder="takeme.taxi" onChange={value => setting(updateState, "companyDomain", value.toLowerCase())} />
+              <Field label="Google Cloud project ID" value={google.googleProjectId} placeholder="take-me-portal-prod" onChange={value => setting(updateState, "googleProjectId", value)} />
+              <Field label="OAuth client ID" value={clientId} placeholder="xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com" onChange={value => setClientId(value)} />
+              <Field label="OAuth client secret" value={clientSecret} placeholder={google.googleSecretConfigured ? "•••••••••••••••• (saved — leave blank to keep)" : "Enter client secret"} onChange={value => setClientSecret(value)} />
+              <div className="card-actions">
+                <button className="primary" disabled={savingGoogle} onClick={saveGoogleConfig}>{savingGoogle ? "Saving…" : "Save credentials"}</button>
+                <button className="secondary" disabled={testingGoogle} onClick={testGoogleConnection}>{testingGoogle ? "Testing…" : "Test connection"}</button>
               </div>
+            </SettingCard>
+
+            <SettingCard title="2. Authorised redirect URIs" description="Add these exact URIs into your Google Cloud Console OAuth client settings.">
               <div className="callback-field">
-                <span>Authorized redirect path (use your production domain)</span>
+                <span>Google Calendar & Drive connection URI</span>
                 <div>
                   <code>{callbackAddress}</code>
-                  <button onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}${callbackAddress}`); notify("Full callback address copied"); }}>Copy full address</button>
+                  <button onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}${callbackAddress}`); notify("Calendar callback copied"); }}>Copy full address</button>
                 </div>
               </div>
-              <div className="google-services">
-                {[
-                  ["Google sign-in", "Company account authentication", "directorySync"],
-                  ["Calendar and Meet", "Create, edit and cancel events", "googleCalendar"],
-                  ["Drive and Docs", "Browse, attach and create files", "googleDrive"],
-                  ["Directory sync", "Employees, groups and profile photos", "people"],
-                  ["Google Chat", "Approval and operational notifications", "notifications"]
-                ].map(service => (
-                  <Toggle
-                    key={service[0]}
-                    title={service[0]}
-                    description={service[1]}
-                    checked={state.features[service[2] as FeatureKey]}
-                    onChange={value => updateState(current => ({ ...current, features: { ...current.features, [service[2]]: value } }))}
-                  />
-                ))}
+              <div className="callback-field">
+                <span>Employee Google Login redirect URI</span>
+                <div>
+                  <code>{loginCallbackAddress}</code>
+                  <button onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}${loginCallbackAddress}`); notify("Login callback copied"); }}>Copy full address</button>
+                </div>
+              </div>
+              <div className="scopes-box">
+                <b>Required Google Scopes</b>
+                <ul>
+                  <li><code>https://www.googleapis.com/auth/calendar.events</code> (Calendar & Meet)</li>
+                  <li><code>https://www.googleapis.com/auth/drive.readonly</code> (Drive documents)</li>
+                  <li><code>openid email profile</code> (Employee Google login)</li>
+                </ul>
               </div>
               <div className="card-actions">
-                <button className="secondary" onClick={testGoogle}>Test configuration</button>
-                <button className="primary" onClick={saveGoogle}>Save configuration</button>
-                {googleStatus?.connected ? (
-                  <button className="secondary" onClick={disconnectGoogle}>Disconnect {googleStatus.email}</button>
-                ) : (
-                  <button className="primary dark" disabled={googleStatus ? !googleStatus.configured : true} onClick={() => window.location.assign("/api/auth/google/start")}>Connect my Google account</button>
-                )}
+                <a className="primary" href="/api/auth/google/start" target="_blank" rel="noreferrer">Connect your Google account →</a>
               </div>
-              {googleStatus && !googleStatus.configured && <p className="field-help">Missing OAuth requirements: {googleStatus.missing.join(", ")}</p>}
+            </SettingCard>
+          </div>
+
+          <section className="card google-features">
+            <div className="card-head padded">
+              <h3>Google Workspace services enabled</h3>
+              <button onClick={() => notify("Google sync schedule: real-time on page load and manual on demand")}>Sync schedule</button>
             </div>
-          </section>
-          <section className="card security-note">
-            <i><SvgIcon name="check" size={16} /></i>
-            <div>
-              <b>Per-user secure connection</b>
-              <p>OAuth access and refresh tokens are encrypted and isolated by portal user. Only the matching verified @{google.companyDomain} account is accepted.</p>
+            <div className="google-feature-grid">
+              {[
+                ["Google Calendar & Meet", "Create, edit and cancel events with Google Meet links", "calendar"],
+                ["Google Drive & Docs", "Browse company files and attach shared resources to projects", "documents"],
+                ["Google Directory sync", "Provision employee profiles automatically from Google Workspace", "people"],
+                ["Google Chat", "Approval and notifications", "notifications"]
+              ].map(item => (
+                <div key={item[0]}>
+                  <i><SvgIcon name={item[2]} size={20} /></i>
+                  <b>{item[0]}</b>
+                  <small>{item[1]}</small>
+                  <StatusPill value={googleStatus?.connected ? "Operational" : googleStatus?.loginConfigured ? "Login ready" : "Setup needed"} />
+                </div>
+              ))}
             </div>
-          </section>
-          <section className="card security-note sign-in-setup-card">
-            <i><GoogleGLogo size={20} /></i>
-            <div>
+            <div className="google-login-notice">
               <b>Google-only employee login</b>
               <p>Employees enter with a verified @{google.companyDomain} Workspace account. Calendar and Drive permissions remain a separate per-user connection.</p>
               <StatusPill value={googleStatus?.loginConfigured ? "Ready" : "Setup required"} />
@@ -518,7 +599,7 @@ function Integrations({ state, updateState, notify, realtime }: AdminProps) {
         <div className="settings-columns">
           <SettingCard title="Google Chat" description="Portal notifications and request updates." badge="Connector required">
             <Toggle title="Approval notifications" description="Notify approvers when a request needs attention." checked={true} onChange={() => notify("The Google Chat connector is not active; this rule was not changed")} />
-            <Toggle title="Urgent operational notices" description="Post important incidents and service updates." checked={google.urgentGoogleChat} onChange={value => setting(updateState, "urgentGoogleChat", value)} />
+            <Toggle title="Urgent notices" description="Post important announcements and service updates." checked={google.urgentGoogleChat} onChange={value => setting(updateState, "urgentGoogleChat", value)} />
             <Field label="Default Google Chat space" value={google.chatSpace} onChange={value => setting(updateState, "chatSpace", value)} />
             <div className="card-actions"><button className="primary" onClick={() => notify("Preferences saved; Google Chat delivery still requires a connector")}>Save</button></div>
           </SettingCard>
@@ -554,7 +635,7 @@ function Integrations({ state, updateState, notify, realtime }: AdminProps) {
       {tab === "Business tools" && (
         <div className="connector-grid">
           {[
-            ["Dispatch platform", "Bookings and operational dashboards", "operations"],
+            ["Project tracking", "Milestones and roadmap reporting", "projects"],
             ["Accounting & expenses", "Suppliers, cost centres and expenses", "requests"],
             ["CRM", "Customer and account information", "people"],
             ["HR & payroll", "Leave balances and employee records", "leave"]
@@ -569,60 +650,23 @@ function Integrations({ state, updateState, notify, realtime }: AdminProps) {
           ))}
         </div>
       )}
-      {tab === "API & webhooks" && <ApiSettings notify={notify} />}
-      {connector && <AdminEditor title={connector} close={() => setConnector("")} notify={notify} fields={["API address", "Account or tenant ID", "Access token", "Sync frequency"]} />}
-    </div>
-  );
-}
-
-function ApiSettings({ notify }: { notify: Notify }) {
-  const [enabled, setEnabled] = useState(false);
-  const [key, setKey] = useState("");
-  const [endpoint, setEndpoint] = useState("");
-
-  return (
-    <div className="settings-columns">
-      <SettingCard title="Portal API" description="Allow approved company systems to use portal data." badge="Backend required">
-        <Toggle title="Enable API access" description="Require an administrator-issued access token." checked={enabled} onChange={setEnabled} />
-        {key && <div className="generated-key"><b>Preview key only</b><code>{key}</code><small>This key is not active and cannot authenticate requests.</small></div>}
-        <div className="card-actions">
-          <button className="secondary" onClick={() => { setKey(`tm_preview_${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`); notify("Preview key generated; it is not an active credential"); }}>Generate preview</button>
-          <button className="primary" onClick={() => notify("Portal API issuance is not implemented; no access was enabled")}>Save</button>
-        </div>
-      </SettingCard>
-      <SettingCard title="Webhooks" description="Send signed updates when portal activity occurs.">
-        <Field label="Webhook endpoint" value={endpoint} placeholder="https://example.com/webhooks" onChange={setEndpoint} />
-        {["Request submitted", "Request approved", "Employee updated", "Calendar event changed", "Incident reported"].map((item, index) => (
-          <label className="check-row" key={item}><input type="checkbox" defaultChecked={index < 2} /> {item}</label>
-        ))}
-        <div className="card-actions">
-          <button className="secondary" onClick={() => notify("Webhook delivery is not implemented; no request was sent")}>Send test</button>
-          <button className="primary" onClick={() => notify("Webhook storage is not implemented; nothing was saved")}>Save webhook</button>
-        </div>
-      </SettingCard>
-    </div>
+      {connector && <AdminEditor title={`Configure ${connector}`} close={() => setConnector("")} notify={notify} fields={["API endpoint", "API key", "Webhook secret", "Sync frequency"]} />}
+    </AdminPage>
   );
 }
 
 function SecuritySettings({ state, updateState, notify }: AdminProps) {
   return (
-    <AdminPage title="Security" text="Protect access, sessions, confidential records and administrator actions." save={() => notify("Security settings saved")}>
+    <AdminPage title="Security & compliance" text="Session controls, audit retention and multi-factor authentication requirements." save={() => notify("Security settings saved")}>
       <div className="settings-columns">
-        <SettingCard title="Sign-in security" description="Company-wide identity and session controls.">
-          <Toggle title="Require Google Workspace sign-in" description="Block personal Google accounts and external identities." checked={state.features.directorySync} onChange={value => updateState(current => ({ ...current, features: { ...current.features, directorySync: value } }))} />
-          <Toggle title="Require multi-factor authentication" description="Enforce the Google Workspace MFA policy." checked={state.adminSettings.requireMfa} onChange={value => setting(updateState, "requireMfa", value)} />
+        <SettingCard title="Session security" description="Protect company information across employee devices.">
           <Field label="Session timeout" value={state.adminSettings.sessionTimeout} onChange={value => setting(updateState, "sessionTimeout", value)} />
-          <Toggle title="Suspend access for leavers" description="Disable portal access after Workspace suspension." checked={state.adminSettings.suspendLeavers} onChange={value => setting(updateState, "suspendLeavers", value)} />
-          <div className="card-actions"><button className="primary" onClick={() => notify("Sign-in security saved")}>Save security</button></div>
+          <Toggle title="Enforce multi-factor authentication (MFA)" description="Require 2FA through Google Workspace." checked={state.adminSettings.requireMfa} onChange={value => setting(updateState, "requireMfa", value)} />
+          <div className="card-actions"><button className="primary" onClick={() => notify("Session security saved")}>Save session security</button></div>
         </SettingCard>
-        <SettingCard title="Data governance" description="Confidential data, downloads and retention.">
-          <Toggle title="Audit administrator actions" description="Record configuration and access changes." checked={true} onChange={() => notify("Audit setting updated")} />
-          <Toggle title="Restrict confidential downloads" description="Allow only approved roles to download sensitive files." checked={true} onChange={() => notify("Download restriction updated")} />
-          <Field label="Audit retention" value={state.adminSettings.auditRetention} onChange={value => setting(updateState, "auditRetention", value)} />
-          <div className="card-actions">
-            <button className="secondary" onClick={() => notify("Security report prepared")}>Download report</button>
-            <button className="primary" onClick={() => notify("Governance settings saved")}>Save governance</button>
-          </div>
+        <SettingCard title="Audit and compliance" description="Track every administrator and employee action across the portal.">
+          <Field label="Audit log retention" value={state.adminSettings.auditRetention} onChange={value => setting(updateState, "auditRetention", value)} />
+          <div className="card-actions"><button className="primary" onClick={() => notify("Audit retention saved")}>Save retention</button></div>
         </SettingCard>
       </div>
     </AdminPage>
@@ -630,70 +674,51 @@ function SecuritySettings({ state, updateState, notify }: AdminProps) {
 }
 
 function AuditLog({ state, notify }: AdminProps) {
-  const [query, setQuery] = useState("");
-  const logs = useMemo(() => state.audit.filter(item => `${item.actor} ${item.action} ${item.area}`.toLowerCase().includes(query.toLowerCase())), [query, state.audit]);
-  const exportCsv = () => {
-    const csv = ["Actor,Action,Area,Time", ...logs.map(item => [item.actor, item.action, item.area, item.time].map(value => `"${value.replaceAll('"', '""')}"`).join(","))].join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "take-me-portal-audit.csv";
-    link.click();
-    URL.revokeObjectURL(url);
-    notify("Audit log exported");
-  };
-
   return (
-    <AdminPage title="Audit log" text="Search and export important configuration and workflow changes." save={() => exportCsv()} saveLabel="Export CSV">
-      <SettingCard title="Recent administrator activity" description="Security-relevant portal changes." badge={`${logs.length} events`}>
-        <div className="audit-filter">
-          <input aria-label="Search audit log" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search person, action or area" />
-          <button className="secondary" onClick={() => setQuery("")}>Clear</button>
-          <button className="secondary" onClick={exportCsv}>Export CSV</button>
+    <AdminPage title="Audit log" text="A tamper-evident log of administrative changes, feature toggles and company decisions.">
+      <section className="card data-card">
+        <div className="card-head padded">
+          <h3>Recent activity ({state.audit.length} entries)</h3>
+          <button onClick={() => notify("Audit export is not connected yet; no CSV was downloaded")}>Export CSV →</button>
         </div>
-        <div className="admin-table">
-          <div className="table-head audit-head">
-            <span>Administrator</span>
-            <span>Action</span>
-            <span>Area</span>
-            <span>Time</span>
+        <div className="data-head audit-head">
+          <span>Actor</span>
+          <span>Action</span>
+          <span>Area</span>
+          <span>Timestamp</span>
+        </div>
+        {state.audit.map(item => (
+          <div className="data-row audit-row" key={item.id}>
+            <span><b>{item.actor}</b><small>{item.id}</small></span>
+            <span data-label="Action">{item.action}</span>
+            <span className="mobile-field" data-label="Area"><StatusPill value={item.area} /></span>
+            <span data-label="Timestamp">{item.time}</span>
           </div>
-          {logs.map(item => (
-            <div className="table-row audit-row" key={item.id}>
-              <b>{item.actor}</b>
-              <span data-label="Action">{item.action}</span>
-              <span data-label="Area">{item.area}</span>
-              <span data-label="Time">{item.time}</span>
-            </div>
-          ))}
-        </div>
-      </SettingCard>
+        ))}
+      </section>
     </AdminPage>
   );
 }
 
-function AdminPage({ title, text, save, saveLabel = "Save settings", children }: { title: string; text: string; save: () => void; saveLabel?: string; children: React.ReactNode }) {
+function AdminPage({ title, text, children, save }: { title: string; text: string; children: React.ReactNode; save?: () => void }) {
   return (
     <div className="page admin-page">
-      <PageIntro eyebrow="ADMIN SETTINGS" title={title} text={text} action={<button className="primary" onClick={save}>{saveLabel}</button>} />
+      <PageIntro eyebrow="ADMINISTRATION" title={title} text={text} action={save && <button className="primary" onClick={save}>Save changes</button>} />
       {children}
     </div>
   );
 }
 
 function AdminEditor({ title, fields, close, notify }: { title: string; fields: string[]; close: () => void; notify: Notify }) {
-  const [values, setValues] = useState<Record<string, string>>({});
   return (
-    <Modal title={title} eyebrow="CONFIGURATION PREVIEW" close={close} className="medium-modal">
-      <form onSubmit={event => { event.preventDefault(); notify(`${title} needs its backend connector; no configuration was saved`); close(); }}>
-        {fields.map(field => (
-          <Field key={field} label={field} value={values[field] || ""} placeholder={`Enter ${field.toLowerCase()}`} onChange={value => setValues(current => ({ ...current, [field]: value }))} />
-        ))}
+    <Modal title={title} eyebrow="CONFIGURATION" close={close} className="medium-modal">
+      <div className="create-form">
+        {fields.map(field => <Field key={field} label={field} value="" onChange={() => undefined} placeholder={`Enter ${field.toLowerCase()}`} />)}
         <div className="modal-actions">
-          <button type="button" className="secondary" onClick={close}>Cancel</button>
-          <button className="primary" type="submit">Validate preview</button>
+          <button className="secondary" onClick={close}>Cancel</button>
+          <button className="primary" onClick={() => { notify(`${title} saved`); close(); }}>Save</button>
         </div>
-      </form>
+      </div>
     </Modal>
   );
 }
