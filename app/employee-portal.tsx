@@ -970,10 +970,11 @@ function ChatPage({ state, updateState, openCreate, notify, realtime }: Employee
     <div className="page chat-page">
       <PageIntro eyebrow="CHAT" title="Team chat" text="Channels, group conversations and direct messages with colleagues." action={<button className="primary" onClick={() => openCreate("conversation")}>＋ New conversation</button>} />
       <section className="chat-layout">
-        <aside className="channel-list">
+        <aside className="chat-channels">
+          <h3>Conversations</h3>
           {state.conversations.map(item => (
             <button
-              className={`channel-item ${item.id === active.id ? "active" : ""}`}
+              className={item.id === active.id ? "active" : ""}
               key={item.id}
               onClick={() => {
                 setActiveId(item.id);
