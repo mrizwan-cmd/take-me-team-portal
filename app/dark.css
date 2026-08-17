@@ -1,0 +1,438 @@
+/* Dark theme: keep every portal surface and interaction legible, including
+   compound accessibility preferences. Loaded after globals.css so component-
+   specific light defaults cannot override the theme. */
+.dark-mode {
+  --blue: #007eae;
+  --canvas: #0b1115;
+  --white: #151f24;
+  --ink: #eef5f7;
+  --muted: #adbdc4;
+  --line: #34464f;
+  --soft: #1d2a30;
+  --green: #6cdaa3;
+  --green-bg: #153c2a;
+  --amber: #ffd083;
+  --amber-bg: #493317;
+  --red: #ff969d;
+  --red-bg: #4b2429;
+  --shadow: 0 14px 36px rgba(0, 0, 0, 0.32);
+  color: var(--ink);
+  color-scheme: dark;
+}
+
+.dark-mode button,
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea {
+  color: inherit;
+}
+
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+  color: #81949d;
+  opacity: 1;
+}
+
+.dark-mode input:disabled,
+.dark-mode input[readonly],
+.dark-mode textarea:disabled,
+.dark-mode select:disabled {
+  background: #202d33;
+  color: #91a3ab;
+  opacity: 1;
+}
+
+.dark-mode .workspace {
+  background: var(--canvas);
+}
+
+.dark-mode .sidebar nav button,
+.dark-mode .sidefoot > button {
+  color: #b7c6cc;
+}
+
+.dark-mode .sidebar nav button:hover,
+.dark-mode .sidefoot > button:hover {
+  background: #202e34;
+  color: var(--ink);
+}
+
+.dark-mode .sidebar nav button.active,
+.dark-mode .sidefoot .admin-entry {
+  background: #123b4b;
+  color: #7bdbff;
+}
+
+.dark-mode .sidebar-signout {
+  background: var(--white);
+  color: #b7c6cc;
+  border-color: var(--line);
+}
+
+.dark-mode .sidebar-signout:hover {
+  background: #381a1d;
+  color: #ff8e95;
+}
+
+.dark-mode .top-create {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+
+.dark-mode .primary {
+  color: #fff;
+}
+
+.dark-mode .admin-shortcut,
+.dark-mode .icon-button,
+.dark-mode .menu-button,
+.dark-mode .secondary {
+  background: #1e2b31;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.dark-mode .admin-shortcut:hover,
+.dark-mode .icon-button:hover,
+.dark-mode .menu-button:hover,
+.dark-mode .secondary:hover {
+  background: #27373e;
+}
+
+.dark-mode .global-search kbd {
+  background: #25343b;
+  border-color: #425760;
+  color: #c7d3d8;
+}
+
+.dark-mode .global-search > b {
+  color: var(--muted);
+}
+
+.dark-mode .eyebrow,
+.dark-mode .event-row time,
+.dark-mode .shift-card time {
+  color: #68d5fb;
+}
+
+.dark-mode .today-strip i,
+.dark-mode .pill.blue,
+.dark-mode .empty-state > i,
+.dark-mode .article-card > span,
+.dark-mode .message > i {
+  background: #123f51;
+  color: #81ddff;
+}
+
+.dark-mode .news-art span {
+  color: #075c7c;
+}
+
+.dark-mode .skills,
+.dark-mode .article-card small {
+  color: var(--muted);
+}
+
+.dark-mode .article-card > b {
+  color: #68d5fb;
+}
+
+.dark-mode .article-card small {
+  border-color: var(--line);
+}
+
+.dark-mode .message.mine > i {
+  background: var(--blue);
+  color: #fff;
+}
+
+.dark-mode .card,
+.dark-mode .modal,
+.dark-mode .command-palette,
+.dark-mode .utility-panel,
+.dark-mode .profile-card,
+.dark-mode .article-body {
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+}
+
+.dark-mode .profile-card,
+.dark-mode .article-body {
+  background: #1a282e;
+}
+
+.dark-mode .profile-heading {
+  background: #1a282e;
+  border-color: var(--line);
+}
+
+.dark-mode .data-head,
+.dark-mode .table-head,
+.dark-mode .command-palette > footer,
+.dark-mode .notification-panel > footer {
+  background: #1d2b31;
+  color: #b0c0c6;
+}
+
+.dark-mode .table-row {
+  background: var(--white);
+  color: var(--ink);
+}
+
+.dark-mode .admin-kpis small {
+  color: var(--muted);
+}
+
+.dark-mode .callback-field > div,
+.dark-mode .callback-field button {
+  background: #1d2b31;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.dark-mode .callback-field code {
+  color: #dbe9ee;
+}
+
+.dark-mode .panel-footer,
+.dark-mode .notification-panel > footer button {
+  background: #1d2b31;
+  color: #68d5fb;
+}
+
+.dark-mode .notification-main > i {
+  color: #68d5fb;
+}
+
+.dark-mode .data-row:hover,
+.dark-mode .table-row:hover,
+.dark-mode .setting-link:hover,
+.dark-mode .module-list > button:hover,
+.dark-mode .command-results > button:hover,
+.dark-mode .panel-item:hover {
+  background: #1e2d33;
+}
+
+.dark-mode .command-results > button > i {
+  background: #24343b;
+  color: #dce8ec;
+}
+
+.dark-mode .create-grid button > i {
+  background: #123f51;
+  color: #81ddff;
+}
+
+.dark-mode .segmented button.active,
+.dark-mode .chat-channels button.active {
+  background: #123f51;
+  color: #81ddff;
+}
+
+.dark-mode .category-row button,
+.dark-mode .folder-tabs button,
+.dark-mode .notification-groups button,
+.dark-mode .widget-manager span button,
+.dark-mode .org-branches button,
+.dark-mode .create-grid button,
+.dark-mode .panel-item,
+.dark-mode .agenda-list > button,
+.dark-mode .month-board > button {
+  background: #1b282e;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.dark-mode .category-row button:hover,
+.dark-mode .folder-tabs button:hover,
+.dark-mode .notification-groups button:hover,
+.dark-mode .widget-manager span button:hover,
+.dark-mode .org-branches button:hover,
+.dark-mode .create-grid button:hover,
+.dark-mode .agenda-list > button:hover,
+.dark-mode .month-board > button:hover {
+  background: #24353c;
+}
+
+.dark-mode .category-row button.active,
+.dark-mode .folder-tabs button.active,
+.dark-mode .notification-groups button.active,
+.dark-mode .org-branches button.active {
+  background: #087da9;
+  border-color: #20b8ed;
+  color: #fff;
+}
+
+.dark-mode .chat-channels {
+  background: #111a1f;
+}
+
+.dark-mode .composer-area {
+  background: var(--white);
+}
+
+.dark-mode .absence-person span {
+  background: var(--white);
+}
+
+.dark-mode .calendar-day {
+  border-color: var(--line);
+  background-color: var(--white);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(20% - 1px),
+    var(--line) calc(20% - 1px),
+    var(--line) 20%
+  );
+}
+
+.dark-mode .calendar-day > b,
+.dark-mode .calendar-times {
+  background: var(--white);
+  color: var(--ink);
+}
+
+.dark-mode .calendar-event {
+  background: #123f51;
+  color: #bdeeff;
+  border-left-color: #2ec5fa;
+}
+
+.dark-mode .acknowledge,
+.dark-mode .install-row {
+  background: #123542;
+  border-color: #2b718a;
+}
+
+.dark-mode .security-note > i {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.dark-mode .settings-card > header > span {
+  background: #123f51;
+  color: #8ce2ff;
+}
+
+.dark-mode .toggle-row > i {
+  background: #53656d;
+}
+
+.dark-mode .toggle-row > i::after {
+  background: #f2f7f9;
+}
+
+.dark-mode .toggle-row input:checked + i {
+  background: #009bd8;
+}
+
+.dark-mode .toast {
+  background: #eef5f7;
+  color: #10181c;
+}
+
+.dark-mode .quick-grid button,
+.dark-mode .today-strip button {
+  color: var(--ink);
+}
+
+.dark-mode .work-row,
+.dark-mode .event-row,
+.dark-mode .task-mini,
+.dark-mode .service-mini,
+.dark-mode .quick-grid button,
+.dark-mode .data-row,
+.dark-mode .task-card footer,
+.dark-mode .agenda-list > button,
+.dark-mode .month-board > button,
+.dark-mode .chat-header,
+.dark-mode .chat-composer,
+.dark-mode .toggle-row,
+.dark-mode .setting-link,
+.dark-mode .module-list > button,
+.dark-mode .health-row,
+.dark-mode .table-row,
+.dark-mode .panel-item,
+.dark-mode .notification-list article {
+  border-color: var(--line);
+}
+
+/* Projects & Kanban Dark Mode */
+.dark-mode .board-col {
+  background: #11191d;
+  border-color: var(--line);
+}
+
+.dark-mode .board-card {
+  background: var(--white);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.dark-mode .board-card:hover {
+  border-color: #3b82a6;
+}
+
+.dark-mode .add-card:hover {
+  background: #202e34;
+  color: var(--ink);
+}
+
+.dark-mode .due-chip {
+  background: #202d33;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.dark-mode .project-bars > div > i {
+  background: #202b31;
+  color: var(--ink);
+}
+
+.dark-mode .timeline-grid {
+  border-color: var(--line);
+}
+
+.dark-mode .timeline-row {
+  border-color: var(--line);
+  background: var(--white);
+}
+
+.dark-mode .timeline-row:hover {
+  background: #1c272d;
+}
+
+.dark-mode .timeline-col-header {
+  background: #1a272e;
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.dark-mode .view-tabs button.active {
+  background: #123f51;
+  color: #81ddff;
+}
+
+.dark-mode .card-detail-modal {
+  background: var(--white);
+  border-color: var(--line);
+}
+
+.dark-mode .detail-sidebar {
+  background: #11191e;
+  border-color: var(--line);
+}
+
+.dark-mode.high-contrast {
+  --muted: #d7e2e6;
+  --line: #8ba1aa;
+}
+
+.dark-mode.high-contrast .card,
+.dark-mode.high-contrast .modal,
+.dark-mode.high-contrast .command-palette,
+.dark-mode.high-contrast .utility-panel {
+  box-shadow: 0 0 0 1px var(--line), 0 16px 38px rgba(0, 0, 0, 0.42);
+}

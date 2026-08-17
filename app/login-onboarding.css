@@ -1,0 +1,708 @@
+.login-screen {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
+  background: #0e171b;
+  color: #fff;
+}
+
+.login-story {
+  position: relative;
+  overflow: hidden;
+  padding: 48px clamp(34px, 6vw, 88px);
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 82% 18%, rgba(23, 181, 231, 0.32), transparent 30%),
+              linear-gradient(145deg, #0f1b20 0%, #11262e 62%, #087eaa 160%);
+}
+
+.login-story:after {
+  content: "";
+  position: absolute;
+  width: 460px;
+  height: 460px;
+  border: 80px solid rgba(255, 255, 255, 0.035);
+  border-radius: 50%;
+  right: -210px;
+  bottom: -230px;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.login-brand img {
+  filter: invert(1);
+  object-fit: contain;
+}
+
+.login-brand b,
+.login-brand small {
+  display: block;
+}
+
+.login-brand b {
+  font-size: 19px;
+  letter-spacing: -0.01em;
+}
+
+.login-brand small {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: #99c8d8;
+  margin-top: 3px;
+  font-weight: 700;
+}
+
+.login-promise {
+  margin: auto 0 44px;
+  max-width: 690px;
+  position: relative;
+  z-index: 1;
+}
+
+.login-promise > p:first-child {
+  color: #3bc9fa;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+
+.login-promise h1 {
+  font-family: Georgia, serif;
+  font-size: clamp(38px, 4.5vw, 64px);
+  line-height: 1.06;
+  margin: 16px 0 20px;
+  max-width: 760px;
+}
+
+.login-promise > p:last-child {
+  color: #c0d4dc;
+  line-height: 1.75;
+  max-width: 620px;
+  font-size: 15px;
+}
+
+.login-feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 680px;
+  position: relative;
+  z-index: 1;
+}
+
+.login-feature-grid article {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  backdrop-filter: blur(10px);
+}
+
+.login-feature-grid i {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #0398ce;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 18px;
+}
+
+.login-feature-grid b,
+.login-feature-grid small {
+  display: block;
+}
+
+.login-feature-grid b {
+  font-size: 13.5px;
+}
+
+.login-feature-grid small {
+  font-size: 11.5px;
+  color: #a4bcc6;
+  margin-top: 3px;
+}
+
+.login-security {
+  font-size: 11px;
+  color: #8da9b4;
+  margin: 22px 0 0;
+  position: relative;
+  z-index: 1;
+}
+
+.login-entry {
+  background: #f6fafb;
+  color: #172126;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+.login-card {
+  width: min(420px, 100%);
+  background: #fff;
+  border: 1px solid #dbe5e9;
+  border-radius: 20px;
+  padding: 38px 32px;
+  box-shadow: 0 25px 70px rgba(6, 27, 36, 0.15);
+  text-align: center;
+}
+
+.login-card > img {
+  object-fit: contain;
+}
+
+.login-card h2 {
+  font-family: Georgia, serif;
+  font-size: 30px;
+  margin: 14px 0 8px;
+}
+
+.login-card > p:not(.eyebrow) {
+  color: #5c6d75;
+  line-height: 1.6;
+  font-size: 13px;
+}
+
+.google-login-button {
+  margin-top: 24px;
+  width: 100%;
+  min-height: 52px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #cbd8dd;
+  box-shadow: 0 3px 9px rgba(24, 45, 54, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #263238;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  transition: all 0.18s;
+}
+
+.google-login-button:hover,
+.google-login-button:focus {
+  border-color: #4285f4;
+  box-shadow: 0 7px 20px rgba(66, 133, 244, 0.18);
+  transform: translateY(-1px);
+}
+
+.google-login-button.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.login-domain {
+  display: block;
+  color: #6a7b83;
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin: 16px auto 20px;
+}
+
+.login-assurance {
+  border-top: 1px solid #e4ebee;
+  padding-top: 18px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.login-assurance span {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #536f7a;
+  background: #f0f6f8;
+  border-radius: 12px;
+  padding: 4px 10px;
+}
+
+.login-message {
+  background: #fff1e8;
+  border: 1px solid #efc09d;
+  color: #874912;
+  border-radius: 9px;
+  padding: 11px;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 16px;
+}
+
+.login-footnote {
+  position: absolute;
+  bottom: 16px;
+  color: #829098;
+  font-size: 11px;
+}
+
+/* First-time Onboarding Dialog */
+.onboarding-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(4, 14, 19, 0.72);
+  backdrop-filter: blur(7px);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.onboarding-dialog {
+  width: min(980px, 100%);
+  max-height: calc(100dvh - 36px);
+  overflow: hidden;
+  background: var(--white);
+  color: var(--ink);
+  border-radius: 20px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.onboarding-side {
+  padding: 32px 24px;
+  background: linear-gradient(155deg, #0f2027, #075b79);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.onboarding-side .eyebrow {
+  color: #55d2ff;
+}
+
+.onboarding-side h2 {
+  font-family: Georgia, serif;
+  font-size: 28px;
+  margin: 10px 0 8px;
+}
+
+.onboarding-side > p {
+  color: #b8d2dc;
+  line-height: 1.6;
+  font-size: 12.5px;
+}
+
+.onboarding-progress {
+  display: grid;
+  gap: 8px;
+  margin: 24px 0;
+}
+
+.onboarding-progress button {
+  border: 0;
+  background: transparent;
+  color: #a2c1cd;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.onboarding-progress button i {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #587b88;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 11px;
+}
+
+.onboarding-progress button.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-weight: 800;
+}
+
+.onboarding-progress button.active i,
+.onboarding-progress button.complete i {
+  background: #00a4dc;
+  border-color: #00a4dc;
+  color: #fff;
+}
+
+.onboarding-side > small {
+  margin-top: auto;
+  color: #92b6c4;
+  line-height: 1.6;
+  font-size: 11px;
+}
+
+.onboarding-main {
+  padding: 34px;
+  overflow-y: auto;
+}
+
+.onboarding-main > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.onboarding-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: #dff5fd;
+  color: #0083b3;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  font-style: normal;
+  flex: 0 0 auto;
+}
+
+.onboarding-main > header > div {
+  flex: 1;
+}
+
+.onboarding-main h1 {
+  font-family: Georgia, serif;
+  font-size: 28px;
+  margin: 2px 0 6px;
+}
+
+.onboarding-main header p {
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.onboarding-close {
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+  color: var(--muted);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+}
+
+.onboarding-close:hover {
+  background: var(--soft);
+}
+
+.onboarding-steps {
+  display: grid;
+  gap: 11px;
+  margin: 26px 0;
+}
+
+.onboarding-steps article {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 15px;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 12px;
+}
+
+.onboarding-steps article > i {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #e4f6fd;
+  color: #007fab;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-weight: 900;
+  font-size: 13px;
+}
+
+.onboarding-steps b,
+.onboarding-steps small {
+  display: block;
+}
+
+.onboarding-steps b {
+  font-size: 13.5px;
+}
+
+.onboarding-steps small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+  margin-top: 3px;
+}
+
+.onboarding-tip {
+  border-left: 3px solid #f2a23a;
+  background: #fff7e7;
+  border-radius: 0 9px 9px 0;
+  padding: 13px 15px;
+  color: #6d4b18;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.onboarding-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.onboarding-actions > div {
+  display: flex;
+  gap: 8px;
+}
+
+/* Help Centre Panel */
+.help-centre-panel {
+  width: min(620px, calc(100vw - 24px));
+}
+
+.help-welcome {
+  margin: 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0f2630, #087ba6);
+  color: #fff;
+  padding: 18px;
+}
+
+.help-welcome h3 {
+  font-family: Georgia, serif;
+  font-size: 20px;
+  margin: 0 0 6px;
+}
+
+.help-welcome p {
+  color: #c2dae3;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.help-welcome button {
+  border: 0;
+  background: #fff;
+  color: #067ca7;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.help-categories {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 14px 12px;
+}
+
+.help-categories button {
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: inherit;
+  border-radius: 16px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.help-categories button.active {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+.help-topic {
+  border-top: 1px solid var(--line);
+}
+
+.help-topic > button {
+  width: 100%;
+  border: 0;
+  background: var(--white);
+  color: inherit;
+  text-align: left;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.help-topic > button:hover {
+  background: #f7fbfd;
+}
+
+.help-topic > button i {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #e4f6fd;
+  color: #007fae;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+}
+
+.help-topic > button span {
+  flex: 1;
+}
+
+.help-topic > button b {
+  display: block;
+  font-size: 13.5px;
+}
+
+.help-topic > button small {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+  margin-top: 3px;
+}
+
+.help-topic > button em {
+  font-style: normal;
+}
+
+.help-topic-detail {
+  padding: 0 18px 18px 64px;
+}
+
+.help-topic-detail p {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+
+.help-topic-detail ol {
+  padding-left: 18px;
+}
+
+.help-topic-detail li {
+  padding: 4px 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.help-empty {
+  padding: 45px 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.dark-mode .onboarding-dialog,
+.dark-mode .help-topic > button,
+.dark-mode .help-categories button {
+  background: var(--white);
+  color: var(--ink);
+}
+
+.dark-mode .onboarding-tip {
+  background: #3a2b15;
+  color: #ffd591;
+}
+
+.dark-mode .onboarding-steps article {
+  border-color: var(--line);
+}
+
+@media (max-width: 768px) {
+  .login-screen {
+    grid-template-columns: 1fr;
+  }
+  .login-story {
+    display: none;
+  }
+  .login-entry {
+    min-height: 100dvh;
+    padding: 24px 16px;
+  }
+  .login-card {
+    padding: 32px 22px;
+  }
+  .login-footnote {
+    bottom: 12px;
+  }
+  .onboarding-dialog {
+    grid-template-columns: 1fr;
+    max-height: calc(100dvh - 18px);
+  }
+  .onboarding-side {
+    padding: 18px;
+    display: block;
+  }
+  .onboarding-side h2 {
+    font-size: 22px;
+    margin: 6px 0;
+  }
+  .onboarding-side > p,
+  .onboarding-side > small {
+    display: none;
+  }
+  .onboarding-progress {
+    display: flex;
+    overflow-x: auto;
+    margin: 12px 0 0;
+    gap: 6px;
+  }
+  .onboarding-progress button {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 0;
+    padding: 6px;
+  }
+  .onboarding-progress button i {
+    width: 32px;
+    height: 32px;
+    font-size: 11px;
+  }
+  .onboarding-close {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+  }
+  .onboarding-main {
+    padding: 22px 18px 90px;
+  }
+  .onboarding-main h1 {
+    font-size: 24px;
+  }
+  .onboarding-actions {
+    position: sticky;
+    bottom: -90px;
+    background: var(--white);
+    margin: 20px -18px -90px;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    display: grid;
+  }
+  .onboarding-actions > div {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+  }
+  .help-centre-panel {
+    right: 8px;
+    width: calc(100vw - 16px);
+  }
+}
