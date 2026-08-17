@@ -372,13 +372,16 @@ export default function Portal() {
 }
 
 function CommandPalette({ state, query, setQuery, close, navigate, openCreate, openAdmin }: { state: PortalState; query: string; setQuery: (value: string) => void; close: () => void; navigate: (page: string) => void; openCreate: (kind: string) => void; openAdmin: (page?: string) => void }) {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
   const items = useMemo(() => {
-    const pages = employeeNav.map(item => ({ title: item[0], detail: "Open portal page", icon: item[1], action: () => navigate(item[0]) }));
+    const pages = employeeNav.map(item => ({ title: item[0], detail: "Open portal page", icon: item[1], action: () => { navigate(item[0]); close(); } }));
     const records = [
-      ...state.requests.map(item => ({ title: item.title, detail: `${item.id} · Request`, icon: "requests", action: () => navigate("Requests") })),
-      ...state.documents.map(item => ({ title: item.name, detail: `${item.folder} · Document`, icon: "documents", action: () => navigate("Documents") })),
-      ...state.articles.map(item => ({ title: item.title, detail: `${item.category} · Knowledge`, icon: "knowledge", action: () => navigate("Knowledge") })),
-      ...state.conversations.map(item => ({ title: item.name, detail: `${item.type} · Chat`, icon: "chat", action: () => navigate("Chat") })),
+      ...state.requests.map(item => ({ title: item.title, detail: `${item.id} · Request`, icon: "requests", action: () => { navigate("Requests"); close(); } })),
+      ...state.documents.map(item => ({ title: item.name, detail: `${item.folder} · Document`, icon: "documents", action: () => { navigate("Documents"); close(); } })),
+      ...state.articles.map(item => ({ title: item.title, detail: `${item.category} · Knowledge`, icon: "knowledge", action: () => { navigate("Knowledge"); close(); } })),
+      ...state.conversations.map(item => ({ title: item.name, detail: `${item.type} · Chat`, icon: "chat", action: () => { navigate("Chat"); close(); } })),
+      ...state.tasks.map(item => ({ title: item.title, detail: `${item.status} · Task`, icon: "tasks", action: () => { navigate("Tasks"); close(); } })),
     ];
     const commands = [
       ["Create a request", "request", "requests"],
@@ -386,23 +389,51 @@ function CommandPalette({ state, query, setQuery, close, navigate, openCreate, o
       ["Start a conversation", "conversation", "chat"],
       ["Add a task", "task", "tasks"],
       ["Request leave", "leave", "leave"]
-    ].map(item => ({ title: item[0], detail: "Quick command", icon: item[2], action: () => openCreate(item[1]) }));
-    const adminItem = { title: "Open Admin settings", detail: "Administration", icon: "settings", action: () => openAdmin() };
+    ].map(item => ({ title: item[0], detail: "Quick command", icon: item[2], action: () => { openCreate(item[1]); close(); } }));
+    const adminItem = { title: "Open Admin settings", detail: "Administration", icon: "settings", action: () => { openAdmin(); close(); } };
     const sessionItem = { title: "Sign out", detail: "End this company session", icon: "logout", action: () => window.location.assign("/api/auth/logout") };
     return [...commands, sessionItem, adminItem, ...pages, ...records].filter(item => `${item.title} ${item.detail}`.toLowerCase().includes(query.toLowerCase())).slice(0, 12);
-  }, [navigate, openAdmin, openCreate, query, state]);
+  }, [close, navigate, openAdmin, openCreate, query, state]);
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query]);
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setSelectedIndex(prev => (prev + 1) % (items.length || 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setSelectedIndex(prev => (prev - 1 + items.length) % (items.length || 1));
+    } else if (event.key === "Enter" && items[selectedIndex]) {
+      event.preventDefault();
+      items[selectedIndex].action();
+    }
+  };
 
   return (
     <div className="command-backdrop" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
       <section className="command-palette" role="dialog" aria-modal="true" aria-label="Search portal">
         <header>
           <span><SvgIcon name="search" size={18} /></span>
-          <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search or type a command…" autoFocus />
+          <input
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search or type a command…"
+            autoFocus
+          />
           <kbd>ESC</kbd>
         </header>
         <div className="command-results">
           {items.length ? items.map((item, index) => (
-            <button key={`${item.title}-${index}`} onClick={item.action}>
+            <button
+              key={`${item.title}-${index}`}
+              className={index === selectedIndex ? "active" : ""}
+              onMouseEnter={() => setSelectedIndex(index)}
+              onClick={item.action}
+            >
               <i><SvgIcon name={item.icon} size={16} /></i>
               <span><b>{item.title}</b><small>{item.detail}</small></span>
               <em>↵</em>

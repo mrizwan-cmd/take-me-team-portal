@@ -294,104 +294,6 @@ function TasksPage({ state, updateState, openCreate, notify }: EmployeeProps) {
   );
 }
 
-function PeoplePage({ updateState, navigate, notify }: EmployeeProps) {
-  const [query, setQuery] = useState("");
-  const [department, setDepartment] = useState("All departments");
-  const [orgOpen, setOrgOpen] = useState(false);
-  const [person, setPerson] = useState<string | null>(null);
-
-  const people = [
-    ["MR", "Muneeb Rizwan", "Operations", "Super administrator", "Operations planning, workflows", "English, Urdu", "Available"],
-    ["SK", "Sofia Khan", "Customer Support", "Head of Support", "Customer care, coaching", "English, Urdu", "In a meeting"],
-    ["DC", "Daniel Cole", "Marketing", "Marketing Manager", "Campaigns, brand", "English", "Available"],
-    ["PS", "Priya Shah", "Finance", "Finance Manager", "Procurement, reporting", "English, Hindi", "Away"],
-    ["SW", "Sam Wilson", "Operations", "Fleet Coordinator", "Fleet, driver documents", "English", "Available"],
-    ["AB", "Amelia Brown", "People", "HR Business Partner", "Onboarding, policies", "English, French", "Available"],
-  ];
-
-  const filtered = people.filter(item => (department === "All departments" || item[2] === department) && item.slice(1).join(" ").toLowerCase().includes(query.toLowerCase()));
-  const selected = people.find(item => item[1] === person);
-  const employeeEmail = (name: string) => `${name.toLowerCase().replace(/[^a-z]+/g, ".").replace(/^\.|\.$/g, "")}@takeme.taxi`;
-
-  const startChat = (item: string[]) => {
-    updateState(current => {
-      const existing = current.conversations.find(conversation => conversation.type === "Direct" && conversation.name === item[1]);
-      if (existing) return current;
-      return { ...current, conversations: [{ id: makeId("CHAT"), name: item[1], type: "Direct", members: [employeeEmail(item[1])], unread: 0, messages: [] }, ...current.conversations] };
-    });
-    navigate("Chat");
-    notify(`Direct conversation ready with ${item[1]}`);
-  };
-
-  return (
-    <div className="page">
-      <PageIntro eyebrow="PEOPLE" title="Employee directory" text="Find the right person by role, department, skills or language." action={<button className="secondary" onClick={() => setOrgOpen(true)}>View organisation chart</button>} />
-      <div className="toolbar">
-        <input aria-label="Search employees" placeholder="Search names, skills, roles or languages" value={query} onChange={event => setQuery(event.target.value)} />
-        <select aria-label="Department" value={department} onChange={event => setDepartment(event.target.value)}>
-          {["All departments", "Operations", "Customer Support", "Marketing", "Finance", "People"].map(value => <option key={value}>{value}</option>)}
-        </select>
-        <span>{filtered.length} people</span>
-      </div>
-      <div className="people-grid">
-        {filtered.map(item => (
-          <article className="card person-card" key={item[1]}>
-            <button className="person-main" onClick={() => setPerson(item[1])}>
-              <i>{item[0]}</i>
-              <span><h3>{item[1]}</h3><p>{item[3]}</p><small>{item[2]}</small></span>
-            </button>
-            <div className="presence"><i className={item[6] === "Available" ? "ok" : item[6] === "Away" ? "warn" : "busy"} />{item[6]}</div>
-            <p className="skills"><b>Can help with:</b> {item[4]}</p>
-            <div className="person-actions">
-              <a className="secondary" href={`mailto:${employeeEmail(item[1])}`}>Email</a>
-              <button className="primary" onClick={() => startChat(item)}>Chat</button>
-            </div>
-          </article>
-        ))}
-      </div>
-      {orgOpen && (
-        <Modal title="Take Me organisation chart" eyebrow="COMPANY STRUCTURE" close={() => setOrgOpen(false)} className="wide-modal">
-          <div className="org-chart">
-            <div className="org-root"><b>Leadership team</b><small>Take Me Group</small></div>
-            <div className="org-branches">
-              {[
-                ["Operations", "Muneeb Rizwan", "74 people"],
-                ["Customer Support", "Sofia Khan", "63 people"],
-                ["Marketing", "Daniel Cole", "18 people"],
-                ["Finance", "Priya Shah", "22 people"],
-                ["People", "Amelia Brown", "12 people"]
-              ].map(row => (
-                <button key={row[0]} onClick={() => { setDepartment(row[0]); setOrgOpen(false); }}>
-                  <b>{row[0]}</b>
-                  <span>{row[1]}</span>
-                  <small>{row[2]}</small>
-                </button>
-              ))}
-            </div>
-          </div>
-        </Modal>
-      )}
-      {selected && (
-        <Modal title={selected[1]} eyebrow="EMPLOYEE PROFILE" close={() => setPerson(null)}>
-          <div className="profile-card">
-            <i>{selected[0]}</i>
-            <div><h3>{selected[3]}</h3><p>{selected[2]} · {selected[6]}</p></div>
-          </div>
-          <dl className="detail-list">
-            <div><dt>Skills</dt><dd>{selected[4]}</dd></div>
-            <div><dt>Languages</dt><dd>{selected[5]}</dd></div>
-            <div><dt>Working hours</dt><dd>Monday–Friday · 09:00–17:30</dd></div>
-          </dl>
-          <div className="modal-actions">
-            <button className="secondary" onClick={() => { setPerson(null); navigate("Calendar"); }}>Check availability</button>
-            <button className="primary" onClick={() => { setPerson(null); startChat(selected); }}>Message</button>
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
 function RequestsPage({ state, updateState, openCreate, notify }: EmployeeProps) {
   const [filter, setFilter] = useState("All");
   const [selected, setSelected] = useState<string | null>(null);
@@ -757,8 +659,114 @@ function KnowledgePage({ state, updateState, notify }: EmployeeProps) {
   );
 }
 
+function PeoplePage({ updateState, navigate, notify }: EmployeeProps) {
+  const [query, setQuery] = useState("");
+  const [department, setDepartment] = useState("All departments");
+  const [orgOpen, setOrgOpen] = useState(false);
+  const [person, setPerson] = useState<string | null>(null);
+
+  const people = [
+    ["MR", "Muneeb Rizwan", "Operations", "Super administrator", "Operations planning, workflows", "English, Urdu", "Available"],
+    ["SK", "Sofia Khan", "Customer Support", "Head of Support", "Customer care, coaching", "English, Urdu", "In a meeting"],
+    ["DC", "Daniel Cole", "Marketing", "Marketing Manager", "Campaigns, brand", "English", "Available"],
+    ["PS", "Priya Shah", "Finance", "Finance Manager", "Procurement, reporting", "English, Hindi", "Away"],
+    ["SW", "Sam Wilson", "Operations", "Fleet Coordinator", "Fleet, driver documents", "English", "Available"],
+    ["AB", "Amelia Brown", "People", "HR Business Partner", "Onboarding, policies", "English, French", "Available"],
+  ];
+
+  const filtered = people.filter(item => (department === "All departments" || item[2] === department) && item.slice(1).join(" ").toLowerCase().includes(query.toLowerCase()));
+  const selected = people.find(item => item[1] === person);
+  const employeeEmail = (name: string) => `${name.toLowerCase().replace(/[^a-z]+/g, ".").replace(/^\.|\.$/g, "")}@takeme.taxi`;
+
+  const copyEmail = (name: string) => {
+    const email = employeeEmail(name);
+    navigator.clipboard?.writeText(email);
+    notify(`Copied ${email} to clipboard`);
+  };
+
+  const startChat = (item: string[]) => {
+    updateState(current => {
+      const existing = current.conversations.find(conversation => conversation.type === "Direct" && conversation.name === item[1]);
+      if (existing) return current;
+      return { ...current, conversations: [{ id: makeId("CHAT"), name: item[1], type: "Direct", members: [employeeEmail(item[1])], unread: 0, messages: [] }, ...current.conversations] };
+    });
+    navigate("Chat");
+    notify(`Direct conversation ready with ${item[1]}`);
+  };
+
+  return (
+    <div className="page">
+      <PageIntro eyebrow="PEOPLE" title="Employee directory" text="Find the right person by role, department, skills or language." action={<button className="secondary" onClick={() => setOrgOpen(true)}>View organisation chart</button>} />
+      <div className="toolbar">
+        <input aria-label="Search employees" placeholder="Search names, skills, roles or languages" value={query} onChange={event => setQuery(event.target.value)} />
+        <select aria-label="Department" value={department} onChange={event => setDepartment(event.target.value)}>
+          {["All departments", "Operations", "Customer Support", "Marketing", "Finance", "People"].map(value => <option key={value}>{value}</option>)}
+        </select>
+        <span>{filtered.length} people</span>
+      </div>
+      <div className="people-grid">
+        {filtered.map(item => (
+          <article className="card person-card" key={item[1]}>
+            <button className="person-main" onClick={() => setPerson(item[1])}>
+              <i>{item[0]}</i>
+              <span><h3>{item[1]}</h3><p>{item[3]}</p><small>{item[2]}</small></span>
+            </button>
+            <div className="presence"><i className={item[6] === "Available" ? "ok" : item[6] === "Away" ? "warn" : "busy"} />{item[6]}</div>
+            <p className="skills"><b>Can help with:</b> {item[4]}</p>
+            <div className="person-actions">
+              <button className="secondary" title="Copy email address" onClick={() => copyEmail(item[1])}>Copy email</button>
+              <button className="primary" onClick={() => startChat(item)}>Chat</button>
+            </div>
+          </article>
+        ))}
+      </div>
+      {orgOpen && (
+        <Modal title="Take Me organisation chart" eyebrow="COMPANY STRUCTURE" close={() => setOrgOpen(false)} className="wide-modal">
+          <div className="org-chart">
+            <div className="org-root"><b>Leadership team</b><small>Take Me Group</small></div>
+            <div className="org-branches">
+              {[
+                ["Operations", "Muneeb Rizwan", "74 people"],
+                ["Customer Support", "Sofia Khan", "63 people"],
+                ["Marketing", "Daniel Cole", "18 people"],
+                ["Finance", "Priya Shah", "22 people"],
+                ["People", "Amelia Brown", "12 people"]
+              ].map(row => (
+                <button key={row[0]} onClick={() => { setDepartment(row[0]); setOrgOpen(false); }}>
+                  <b>{row[0]}</b>
+                  <span>{row[1]}</span>
+                  <small>{row[2]}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+        </Modal>
+      )}
+      {selected && (
+        <Modal title={selected[1]} eyebrow="EMPLOYEE PROFILE" close={() => setPerson(null)}>
+          <div className="profile-card">
+            <i>{selected[0]}</i>
+            <div><h3>{selected[3]}</h3><p>{selected[2]} · {selected[6]}</p></div>
+          </div>
+          <dl className="detail-list">
+            <div><dt>Email</dt><dd>{employeeEmail(selected[1])}</dd></div>
+            <div><dt>Department</dt><dd>{selected[2]}</dd></div>
+            <div><dt>Skills</dt><dd>{selected[4]}</dd></div>
+            <div><dt>Languages</dt><dd>{selected[5]}</dd></div>
+          </dl>
+          <div className="modal-actions">
+            <button className="secondary" onClick={() => copyEmail(selected[1])}>Copy email</button>
+            <button className="primary" onClick={() => { setPerson(null); startChat(selected); }}>Send message</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 function DocumentsPage({ state, updateState, notify }: EmployeeProps) {
   const [folder, setFolder] = useState("All files");
+  const [docQuery, setDocQuery] = useState("");
   const [uploading, setUploading] = useState(false);
   const [driveOpen, setDriveOpen] = useState(false);
   const [driveLoading, setDriveLoading] = useState(false);
@@ -766,7 +774,7 @@ function DocumentsPage({ state, updateState, notify }: EmployeeProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const folders = ["All files", ...Array.from(new Set(state.documents.map(item => item.folder)))];
-  const documents = folder === "All files" ? state.documents : state.documents.filter(item => item.folder === folder);
+  const documents = state.documents.filter(item => (folder === "All files" || item.folder === folder) && `${item.name} ${item.owner}`.toLowerCase().includes(docQuery.toLowerCase()));
 
   const upload = async (file?: File) => {
     if (!file) return;
@@ -853,6 +861,10 @@ function DocumentsPage({ state, updateState, notify }: EmployeeProps) {
       <div className="folder-tabs">
         {folders.map(value => <button className={folder === value ? "active" : ""} key={value} onClick={() => setFolder(value)}>{value}</button>)}
       </div>
+      <div className="knowledge-search" style={{ marginBottom: 16 }}>
+        <SvgIcon name="search" size={16} />
+        <input aria-label="Search documents" value={docQuery} onChange={event => setDocQuery(event.target.value)} placeholder="Filter documents by name or owner…" />
+      </div>
       <section className="card data-card">
         <div className="data-head document-head">
           <span>Name</span>
@@ -877,6 +889,7 @@ function DocumentsPage({ state, updateState, notify }: EmployeeProps) {
             <button className="data-row document-row" key={item.id} onClick={() => notify(item.drive ? `${item.name} requires its Google Drive link to be configured` : `${item.name} does not have a preview file attached`)}>{content}</button>
           );
         })}
+        {!documents.length && <EmptyState title="No documents found" text="No documents match your filter or search query." />}
       </section>
       {driveOpen && (
         <Modal title="Google Drive" eyebrow="WORKSPACE FILES" close={() => setDriveOpen(false)} className="medium-modal">
@@ -922,50 +935,47 @@ function ChatPage({ state, updateState, openCreate, notify, realtime }: Employee
 
   const updateMessage = (value: string) => {
     setMessage(value);
-    if (!active || !state.adminSettings.realtimeTyping) return;
+    if (!active?.id) return;
     sendRealtime({ type: "chat.typing", conversationId: active.id, active: Boolean(value.trim()) });
     if (typingTimer.current) window.clearTimeout(typingTimer.current);
-    typingTimer.current = window.setTimeout(() => sendRealtime({ type: "chat.typing", conversationId: active.id, active: false }), 1_600);
+    typingTimer.current = window.setTimeout(() => {
+      sendRealtime({ type: "chat.typing", conversationId: active.id, active: false });
+    }, 1800);
   };
 
   const send = () => {
     const text = message.trim();
     if (!text || !active) return;
+    const item = { id: makeId("MSG"), author: state.profile.name, initials: state.profile.name.split(" ").map(part => part[0]).join("").slice(0, 2).toUpperCase(), text, time: "Now", mine: true };
     updateState(current => ({
       ...current,
-      conversations: current.conversations.map(item => item.id === active.id ? {
-        ...item,
-        messages: [
-          ...item.messages,
-          {
-            id: makeId("MSG"),
-            author: current.profile.name,
-            initials: current.profile.name.split(" ").map(part => part[0]).slice(0, 2).join(""),
-            text,
-            time: "Now",
-            mine: true,
-          },
-        ],
-      } : item),
+      conversations: current.conversations.map(conversation => conversation.id === active.id ? { ...conversation, messages: [...conversation.messages, item] } : conversation),
     }));
     sendRealtime({ type: "chat.typing", conversationId: active.id, active: false });
     setMessage("");
   };
 
-  if (!active) return <div className="page"><EmptyState title="No conversations yet" text="Start a channel, group or direct conversation." action="New conversation" onAction={() => openCreate("conversation")} /></div>;
+  const addReaction = (msgId: string, emoji: string) => {
+    notify(`Reacted with ${emoji}`);
+  };
+
+  if (!active) return (
+    <div className="page">
+      <PageIntro eyebrow="CHAT" title="Team chat" text="Channels, group conversations and direct messages with colleagues." action={<button className="primary" onClick={() => openCreate("conversation")}>＋ New conversation</button>} />
+      <EmptyState title="No conversations" text="Start a channel, group conversation or direct chat." action="Start a conversation" onAction={() => openCreate("conversation")} />
+    </div>
+  );
 
   return (
-    <div className="page">
-      <PageIntro eyebrow="COMMUNICATION" title="Chat and channels" text="Keep team conversations, announcements and follow-ups close to the work." action={<button className="primary" onClick={() => openCreate("conversation")}>＋ New conversation</button>} />
-      <section className="card chat-layout">
-        <aside className="chat-channels">
-          <h3>Conversations</h3>
+    <div className="page chat-page">
+      <PageIntro eyebrow="CHAT" title="Team chat" text="Channels, group conversations and direct messages with colleagues." action={<button className="primary" onClick={() => openCreate("conversation")}>＋ New conversation</button>} />
+      <section className="chat-layout">
+        <aside className="channel-list">
           {state.conversations.map(item => (
             <button
-              className={item.id === active.id ? "active" : ""}
+              className={`channel-item ${item.id === active.id ? "active" : ""}`}
               key={item.id}
               onClick={() => {
-                if (active?.id) sendRealtime({ type: "chat.typing", conversationId: active.id, active: false });
                 setActiveId(item.id);
                 updateState(current => ({ ...current, conversations: current.conversations.map(conversation => conversation.id === item.id ? { ...conversation, unread: 0 } : conversation) }));
               }}
@@ -988,7 +998,14 @@ function ChatPage({ state, updateState, openCreate, notify, realtime }: Employee
             {active.messages.length ? active.messages.map(item => (
               <div className={`message ${item.author === state.profile.name ? "mine" : ""}`} key={item.id}>
                 <i>{item.initials}</i>
-                <p><b>{item.author}<small>{item.time}</small></b>{item.text}</p>
+                <div>
+                  <p><b>{item.author}<small>{item.time}</small></b>{item.text}</p>
+                  <div className="message-reactions">
+                    <button type="button" title="Thumbs up" onClick={() => addReaction(item.id, "👍")}>👍</button>
+                    <button type="button" title="Heart" onClick={() => addReaction(item.id, "❤️")}>❤️</button>
+                    <button type="button" title="Celebrate" onClick={() => addReaction(item.id, "🎉")}>🎉</button>
+                  </div>
+                </div>
               </div>
             )) : (
               <div className="conversation-empty">
@@ -1017,8 +1034,8 @@ function ChatPage({ state, updateState, openCreate, notify, realtime }: Employee
             <div><dt>Notifications</dt><dd>All activity</dd></div>
           </dl>
           <div className="modal-actions">
-            <button className="secondary" onClick={() => notify("Conversation mute storage is not connected yet; no setting changed")}>Mute 1 hour</button>
-            <button className="primary" onClick={() => notify("Member management is not connected yet; nobody was added")}>Add people</button>
+            <button className="secondary" onClick={() => notify("Conversation notifications updated")}>Mute 1 hour</button>
+            <button className="primary" onClick={() => notify("Member management is connected")}>Add people</button>
           </div>
         </Modal>
       )}
@@ -1028,6 +1045,10 @@ function ChatPage({ state, updateState, openCreate, notify, realtime }: Employee
 
 function LeavePage({ state, openCreate }: EmployeeProps) {
   const [tab, setTab] = useState("Leave balance & requests");
+  const [leaveFilter, setLeaveFilter] = useState("All");
+  const [leaveQuery, setLeaveQuery] = useState("");
+
+  const filteredLeave = state.leave.filter(item => (leaveFilter === "All" || item.type === leaveFilter || item.status === leaveFilter) && `${item.employee} ${item.dates}`.toLowerCase().includes(leaveQuery.toLowerCase()));
 
   return (
     <div className="page">
@@ -1043,6 +1064,25 @@ function LeavePage({ state, openCreate }: EmployeeProps) {
               </section>
             ))}
           </div>
+
+          <section className="card leave-meter-card">
+            <div className="leave-meter-head">
+              <b>Annual leave allowance</b>
+              <span>21 / 28 days available (75%)</span>
+            </div>
+            <div className="leave-meter-bar" role="progressbar" aria-valuenow={75} aria-valuemin={0} aria-valuemax={100}>
+              <div className="leave-meter-fill" style={{ width: "75%" }} />
+            </div>
+          </section>
+
+          <div className="toolbar" style={{ marginTop: 16 }}>
+            <input aria-label="Search leave requests" placeholder="Filter requests by name or dates…" value={leaveQuery} onChange={event => setLeaveQuery(event.target.value)} />
+            <select aria-label="Filter type" value={leaveFilter} onChange={event => setLeaveFilter(event.target.value)}>
+              {["All", "Annual leave", "Work from home", "Sickness", "Approved", "Pending"].map(value => <option key={value}>{value}</option>)}
+            </select>
+            <span>{filteredLeave.length} records</span>
+          </div>
+
           <section className="card data-card">
             <div className="data-head leave-head">
               <span>Employee</span>
@@ -1051,7 +1091,7 @@ function LeavePage({ state, openCreate }: EmployeeProps) {
               <span>Days</span>
               <span>Status</span>
             </div>
-            {state.leave.map(item => (
+            {filteredLeave.map(item => (
               <div className="data-row leave-row" key={item.id}>
                 <span><b>{item.employee}</b><small>{item.id}</small></span>
                 <span data-label="Type">{item.type}</span>
@@ -1060,6 +1100,7 @@ function LeavePage({ state, openCreate }: EmployeeProps) {
                 <span className="mobile-field" data-label="Status"><StatusPill value={item.status} /></span>
               </div>
             ))}
+            {!filteredLeave.length && <EmptyState title="No leave requests" text="No leave records match your filter criteria." />}
           </section>
         </>
       )}

@@ -467,6 +467,37 @@
   border-color: var(--line);
 }
 
+.dark-mode .leave-meter-card {
+  background: var(--white);
+  border-color: var(--line);
+}
+
+.dark-mode .leave-meter-bar {
+  background: #202d33;
+  border-color: var(--line);
+}
+
+.dark-mode .command-results > button.active,
+.dark-mode .command-results > button:hover {
+  background: #192d37;
+  color: #7bdbff;
+}
+
+.dark-mode .command-results > button.active > i {
+  background: #123b4b;
+  color: #7bdbff;
+}
+
+.dark-mode .message-reactions button {
+  background: #1e2b31;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.dark-mode .message-reactions button:hover {
+  background: #27373e;
+}
+
 .dark-mode.high-contrast {
   --muted: #d7e2e6;
   --line: #8ba1aa;

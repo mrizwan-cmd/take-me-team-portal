@@ -1933,6 +1933,67 @@ h1, h2, h3, p {
   font-weight: 600;
 }
 
+.leave-meter-card {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.leave-meter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.leave-meter-head b {
+  color: var(--ink);
+}
+
+.leave-meter-head span {
+  color: #007eae;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.leave-meter-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--soft);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.leave-meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #007eae, #168a58);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.message-reactions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.message-reactions button {
+  border: 1px solid var(--line);
+  background: var(--white);
+  border-radius: 12px;
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s;
+}
+
+.message-reactions button:hover {
+  background: var(--soft);
+  transform: scale(1.15);
+}
+
 .leave-head, .leave-row { grid-template-columns: 1.5fr 1fr 1fr 0.5fr 0.8fr; }
 .shift-grid, .status-grid {
   display: grid;
@@ -2517,7 +2578,16 @@ h1, h2, h3, p {
   text-align: left;
 }
 
-.command-results > button:hover, .command-results > button:focus { background: #e8f7fd; }
+.command-results > button:hover,
+.command-results > button:focus,
+.command-results > button.active {
+  background: #e8f7fd;
+  color: #066e96;
+}
+.command-results > button.active > i {
+  background: #d4eef9;
+  color: #007eae;
+}
 .command-results > button > i {
   width: 34px;
   height: 34px;
