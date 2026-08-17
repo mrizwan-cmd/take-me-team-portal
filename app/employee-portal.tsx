@@ -969,7 +969,7 @@ function ChatPage({ state, updateState, openCreate, notify, realtime }: Employee
   return (
     <div className="page chat-page">
       <PageIntro eyebrow="CHAT" title="Team chat" text="Channels, group conversations and direct messages with colleagues." action={<button className="primary" onClick={() => openCreate("conversation")}>＋ New conversation</button>} />
-      <section className="chat-layout">
+      <section className="card chat-layout">
         <aside className="chat-channels">
           <h3>Conversations</h3>
           {state.conversations.map(item => (
