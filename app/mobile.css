@@ -433,7 +433,8 @@
   }
 
   .sidebar nav button,
-  .sidefoot > button {
+  .sidefoot > button,
+  .sidefoot > a {
     min-height: 46px;
     border-radius: 9px;
     font-size: 14px;

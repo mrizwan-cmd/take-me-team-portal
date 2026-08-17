@@ -46,32 +46,74 @@
   background: var(--canvas);
 }
 
-.dark-mode .sidebar nav button,
-.dark-mode .sidefoot > button {
+.dark-mode .sidebar nav button {
   color: #b7c6cc;
 }
 
-.dark-mode .sidebar nav button:hover,
-.dark-mode .sidefoot > button:hover {
+.dark-mode .sidebar nav button:hover {
   background: #202e34;
   color: var(--ink);
 }
 
-.dark-mode .sidebar nav button.active,
-.dark-mode .sidefoot .admin-entry {
+.dark-mode .sidebar nav button.active {
   background: #123b4b;
   color: #7bdbff;
 }
 
-.dark-mode .sidebar-signout {
-  background: var(--white);
-  color: #b7c6cc;
+.dark-mode .sidefoot {
   border-color: var(--line);
+  background: #111a1e;
 }
 
-.dark-mode .sidebar-signout:hover {
-  background: #381a1d;
+.dark-mode .admin-switch {
+  background: rgba(123, 219, 255, 0.09);
+  border-color: rgba(123, 219, 255, 0.22);
+  color: #7bdbff;
+}
+
+.dark-mode .admin-switch:hover {
+  background: rgba(123, 219, 255, 0.18);
+  border-color: rgba(123, 219, 255, 0.4);
+}
+
+.dark-mode .profile-button {
+  background: #18242a;
+  border-color: var(--line);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .profile-button:hover {
+  background: #202e35;
+  border-color: #384c56;
+}
+
+.dark-mode .profile-button b {
+  color: #f0f6f8;
+}
+
+.dark-mode .profile-button small {
+  color: #8da2ac;
+}
+
+.dark-mode .profile-button > i {
+  background: linear-gradient(135deg, #007eae, #0b93c8);
+  color: #fff;
+}
+
+.dark-mode .logout-button {
+  color: #8da2ac;
+}
+
+.dark-mode .logout-button:hover {
+  background: rgba(255, 110, 118, 0.12);
   color: #ff8e95;
+}
+
+.dark-mode .sync-chip {
+  background: #18242a;
+  border-color: var(--line);
+  color: #8da2ac;
 }
 
 .dark-mode .top-create {

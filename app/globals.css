@@ -221,32 +221,146 @@ h1, h2, h3, p {
 
 .sidefoot {
   border-top: 1px solid var(--line);
-  padding: 8px 10px 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--canvas);
 }
 
-.sidefoot .admin-entry {
-  color: #066e96;
-  font-weight: 750;
-  background: #f0f9fd;
-}
-
-.sidebar-signout {
-  border-top: 1px solid var(--line);
-  background: var(--white);
-  color: #526069;
-  min-height: 44px;
-  padding: 10px 18px;
+.admin-switch {
   display: flex;
   align-items: center;
-  gap: 11px;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
+  gap: 9px;
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 11px;
+  border-radius: 9px;
+  border: 1px solid rgba(0, 126, 174, 0.2);
+  background: rgba(0, 126, 174, 0.07);
+  color: #007eae;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.sidebar-signout:hover {
-  background: #fdf2f2;
+.admin-switch:hover {
+  background: rgba(0, 126, 174, 0.14);
+  border-color: rgba(0, 126, 174, 0.35);
+}
+
+.admin-switch i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.profile-button:hover {
+  background: var(--soft);
+  border-color: #b7c7ce;
+  transform: translateY(-1px);
+}
+
+.profile-button > i {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #007eae, #0b93c8);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 126, 174, 0.25);
+}
+
+.profile-button > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.profile-button b {
+  display: block;
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.profile-button small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.profile-button .live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 2.5px rgba(22, 138, 88, 0.2);
+  flex-shrink: 0;
+}
+
+.logout-button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 650;
+  transition: all 0.15s ease;
+}
+
+.logout-button:hover {
+  background: rgba(189, 48, 56, 0.08);
   color: var(--red);
+}
+
+.logout-button i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .user {
@@ -354,6 +468,51 @@ h1, h2, h3, p {
   padding: 3px 6px;
   background: #fff;
   color: #65747c;
+}
+
+.topbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sync-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+}
+
+.sync-chip i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #91a0a7;
+  display: inline-block;
+}
+
+.sync-chip i.ok {
+  background: var(--green);
+  box-shadow: 0 0 0 2.5px rgba(22, 138, 88, 0.2);
+}
+
+.sync-chip i.syncing {
+  background: var(--amber);
+  animation: realtime-pulse 1.2s infinite;
+}
+
+.sync-chip i.warn {
+  background: var(--red);
+  box-shadow: 0 0 0 2.5px rgba(189, 48, 56, 0.2);
 }
 
 .realtime-status {
