@@ -1,66 +1,158 @@
 # Take Me Team Portal
 
-Internal company portal for Take Me Group, branded for [takeme.taxi](https://www.takeme.taxi/). It includes employee self-service, approvals, purchase requests, calendar and Drive access, chat, people, knowledge, documents, leave, operations, and a complete Admin area.
+> A secure, mobile-ready internal workspace for Take Me Group employees, managers, and administrators.
 
-## Local use
+[![Portal quality gate](https://github.com/mrizwan-cmd/take-me-team-portal/actions/workflows/ci.yml/badge.svg)](https://github.com/mrizwan-cmd/take-me-team-portal/actions/workflows/ci.yml)
 
-1. Copy `.env.example` to `.env.local` and fill only the values needed for local integration testing.
-2. Run `npm.cmd run dev`.
-3. Open `http://127.0.0.1:3000/`.
+The Take Me Team Portal brings day-to-day company work into one branded application. It combines employee self-service, requests and approvals, direct messaging, project collaboration, documents, company knowledge, operations, Google Workspace tools, and administration in a responsive web app that can also be installed on Android and iPhone.
 
-Localhost uses a development-only Muneeb Rizwan administrator identity unless `PORTAL_FORCE_GOOGLE_LOGIN=true`. Local data and uploads are stored under the ignored `.portal-data` folder when PostgreSQL and S3 values are empty. Non-local and production requests fail closed until the database, storage and Google Workspace settings are configured.
+This repository is private and intended for Take Me Group development and deployment.
 
-## Android and iPhone app
+## Project status
 
-The portal is an installable progressive web app (PWA) with branded Android and iPhone icons, a standalone full-screen layout, mobile deep links, safe-area support, an offline connection screen, one-handed bottom navigation, touch-sized controls, mobile cards, and bottom-sheet forms.
+The portal is in **pre-production validation**. The application builds successfully, passes its automated test suite, and has deployment guidance for Vercel testing and Forge production. It must not be approved for production until the checks in [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md) are complete.
+
+Two issues identified during the latest review still need correction:
+
+- Direct-message realtime events need participant-scoped delivery and server-side membership validation.
+- Multi-feature state updates need an atomic database transaction so a conflict cannot leave a partially saved request.
+
+## What the portal includes
+
+| Area | Capabilities |
+| --- | --- |
+| Home | Personal dashboard, upcoming work, company updates, shortcuts, and notifications |
+| Requests & approvals | Employee requests, purchase requests, manager decisions, status tracking, and audit history |
+| Projects | Boards, lists, cards, templates, automations, assignments, comments, and collaboration controls |
+| Direct messages | One-to-one employee conversations, attachments, typing indicators, message receipts, search, and notifications |
+| People | Google-authenticated employee directory, profile details, roles, departments, and availability |
+| Work tools | Tasks, calendar, leave, shifts, handovers, documents, articles, and knowledge resources |
+| Operations | Drivers, vehicles, incidents, services, and operational records |
+| Administration | Feature controls, role configuration, integrations, branding, communication settings, and system health |
+| Google Workspace | Company login plus separately authorized Calendar and Drive access |
+
+## Experience and design
+
+- Official Take Me branding and primary colour
+- Responsive desktop, tablet, and mobile layouts
+- Installable progressive web app for Android and iOS
+- One-handed mobile navigation, safe-area support, and touch-sized controls
+- Dark mode, reduced-motion preference, keyboard navigation, and accessibility linting
+- Offline application shell without caching private company API responses
+- Background synchronization with optional authenticated WebSocket updates
+
+## Technology
+
+- Next.js 16 and React 19
+- TypeScript with strict validation
+- PostgreSQL persistence with project migrations
+- Private Vercel Blob or S3-compatible object storage
+- Google OpenID Connect, Calendar, and Drive integrations
+- Authenticated `ws` realtime gateway with polling fallback
+- Node.js test runner, ESLint, and GitHub Actions
+
+## Security model
+
+Production access is restricted to the configured Google Workspace domain. The server verifies Google identity claims and creates a signed, HTTP-only portal session. Administrator and approval permissions are enforced by API routes, not only hidden in the interface.
+
+The portal also provides:
+
+- Same-origin checks on mutation routes
+- Per-user storage for personal data and integration credentials
+- AES-GCM encryption for stored Google OAuth credentials
+- Private file records and authenticated download routes
+- File type and 20 MB size limits
+- Semantic payload validation and revision-based conflict detection
+- Separate secrets and data stores for testing and production
+
+Never commit `.env.local`, OAuth secrets, session secrets, database credentials, or storage tokens. The included [.env.example](./.env.example) contains placeholders only.
+
+## Local development
+
+### Requirements
+
+- Node.js 22.13 or newer
+- npm
+- Optional PostgreSQL and object storage for integration testing
+
+### Start the portal
+
+```powershell
+Copy-Item .env.example .env.local
+npm.cmd install
+npm.cmd run dev
+```
+
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000).
+
+Localhost uses a development-only administrator identity unless `PORTAL_FORCE_GOOGLE_LOGIN=true`. When database and storage settings are empty, local records and uploads use the ignored `.portal-data` directory. Non-local environments fail closed until their required services and secure settings are configured.
+
+## Environment configuration
+
+The full configuration template is in [.env.example](./.env.example). Important groups include:
+
+- `DATABASE_*` for PostgreSQL
+- `BLOB_*` or `S3_*` for private file storage
+- `PORTAL_*` for sessions, company-domain access, administrators, and managers
+- `GOOGLE_*` for company login, Calendar, Drive, and encrypted token storage
+- `REALTIME_*` for the optional Forge WebSocket gateway
+- `TEMP_ADMIN_*` for short-lived initial setup outside production
+
+Temporary administrator login is disabled in production and should be removed from every deployed environment as soon as Google company login is verified.
+
+## Database setup
+
+Apply the included migrations before starting a connected environment:
+
+```powershell
+npm.cmd run db:migrate
+```
+
+Use separate PostgreSQL databases for local development, Vercel testing, and Forge production.
+
+## Quality checks
+
+```powershell
+npm.cmd run lint
+npx.cmd tsc --noEmit
+npm.cmd test
+npm.cmd audit --audit-level=high
+```
+
+`npm.cmd test` creates a production build before running the contract and regression tests. GitHub Actions repeats linting, strict TypeScript validation, the production build, and the full test suite on pushes and pull requests.
+
+## Deployment
+
+The same Next.js application can run in both supported environments:
+
+- **Vercel testing:** stable test URL, isolated database and storage, polling-based synchronization, and optional external realtime gateway.
+- **Forge production:** Node.js application daemon, PostgreSQL, private object storage, Nginx, SSL, and the included realtime WebSocket daemon.
+
+Follow [DEPLOYMENT.md](./DEPLOYMENT.md) for platform configuration, OAuth callback addresses, migration commands, Forge daemons, Nginx routing, and release checks.
+
+## Mobile installation
 
 - **Android:** open the production HTTPS address in Chrome and choose **Install app**.
-- **iPhone/iPad:** open it in Safari, tap **Share**, then **Add to Home Screen**.
+- **iPhone or iPad:** open it in Safari, select **Share**, then **Add to Home Screen**.
 
-The app shell can open offline, but company data remains server-protected and is not stored in the offline cache. A network connection is required to load or save portal records.
+The offline shell can open without a connection, but company records remain server-protected and require a network connection to load or save.
 
-## Validation
+## Repository guide
 
-- `npm.cmd run lint` — source quality and accessibility rules
-- `npx.cmd tsc --noEmit` — strict TypeScript validation
-- `npm.cmd test` — production build, rendered-shell test, and security contract tests
-- `npm.cmd audit --omit=dev --audit-level=moderate` — live production-dependency advisory check
+```text
+app/          Portal screens, client state, authentication, and API routes
+db/           Database access and migrations
+lib/          Shared infrastructure, including object storage
+public/       Take Me branding and progressive-web-app assets
+realtime/     Optional authenticated WebSocket gateway
+scripts/      Operational scripts, including database migration
+tests/        Security, persistence, realtime, UI, and regression contracts
+```
 
-## Authentication and roles
+## Production approval
 
-Production access uses the Take Me Google Workspace login and an eight-hour signed, HTTP-only portal session. The same standard Next.js server runs on Vercel and Forge. Configure:
+A successful build is not production approval. Before launch, complete every item in [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md), including live role testing, external-account rejection, Google integration checks, file-security decisions, backups, retention, accessibility review, and multi-user staging acceptance.
 
-- `PORTAL_ALLOWED_DOMAIN=takeme.taxi`
-- `PORTAL_SESSION_SECRET` with at least 32 random characters
+---
 
-For initial deployment setup only, the login screen can expose a temporary one-hour administrator session when `TEMP_ADMIN_USERNAME`, `TEMP_ADMIN_PASSWORD_HASH`, `TEMP_ADMIN_EMAIL`, and a future `TEMP_ADMIN_EXPIRES_AT` are configured. The password is stored only as a `scrypt-v1` hash. Remove all four values as soon as Google login is working.
-- `PORTAL_ADMIN_EMAILS` as a comma-separated list
-- `PORTAL_MANAGER_EMAILS` as a comma-separated list of approval managers
-
-The API accepts identity only from a valid signed portal-session cookie. Admin controls are enforced by the API, not only hidden in the interface. Personal tasks, calendar events, notifications, leave, shifts, preferences, and onboarding progress are stored per user. Employee requests are owner-bound and create manager approval items. Shared writes use conflict detection to avoid silently overwriting another session.
-
-## Google Workspace
-
-The Google domain, project ID, OAuth Client ID and Client Secret can be entered in **Admin → Integrations**. The Client Secret is encrypted before it is stored in PostgreSQL. Environment variables remain supported and take precedence when an operator wants platform-managed secrets:
-
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_TOKEN_ENCRYPTION_KEY` (a long random secret)
-- `PORTAL_SESSION_SECRET` (at least 32 random characters)
-- optionally `GOOGLE_CLIENT_ID`, `GOOGLE_REDIRECT_URI`, `GOOGLE_LOGIN_REDIRECT_URI`, and `GOOGLE_WORKSPACE_DOMAIN`
-
-Register both OAuth callbacks in the same Google Cloud web client:
-
-- `https://<production-domain>/api/auth/google/login/callback` for company login
-- `https://<production-domain>/api/auth/google/callback` for Calendar and Drive
-
-The login requests only OpenID email/profile identity. Calendar and Drive permissions are requested separately when an employee connects those services. Their OAuth tokens are AES-GCM encrypted and isolated per portal user.
-
-## Storage and uploads
-
-The portable backend uses PostgreSQL through `DATABASE_URL` and private S3-compatible storage through the `S3_*` settings. Cloudflare R2 can still be used through its standard S3 API. Uploads are restricted to common business documents and safe image formats, limited to 20 MB, recorded in PostgreSQL, and downloaded through an authenticated route.
-
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for the Vercel testing and Forge production setup.
-
-## Before production
-
-Do not approve production until [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md) is complete, including isolated testing and production data, real role lists, Google OAuth consent and both callback addresses, external-account rejection, staging workflow tests, backup/retention decisions, and an uploaded-file security policy.
+Built for [Take Me Group](https://www.takeme.taxi/).
