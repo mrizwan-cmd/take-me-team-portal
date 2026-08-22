@@ -1,8 +1,10 @@
 import { env } from "@/app/api/_runtime";
+import { defaultPortalState, type Conversation, type Employee } from "@/app/portal-data";
 import { requirePortalUser, requireSameOrigin } from "../_auth";
+import { featureAreas, validatePortalState } from "./_schema";
+import { ensureEmployeeDirectoryTable, ensureSessionEmployee } from "../auth/google/employee-directory";
 
 const workspaceId = "take-me-group";
-const arrayFields = ["requests", "approvals", "tasks", "events", "conversations", "documents", "articles", "leave", "shifts", "drivers", "vehicles", "incidents", "handovers", "services", "notifications", "audit", "projectBoards", "projectAutomations", "projectTemplates", "widgets"] as const;
 const personalFields = ["tasks", "events", "notifications", "leave", "shifts"] as const;
 
 async function ensureTables() {
@@ -24,7 +26,29 @@ async function ensureTables() {
       data TEXT NOT NULL,
       updated_at BIGINT NOT NULL
     )`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS portal_feature_state (
+      workspace_id TEXT NOT NULL,
+      area TEXT NOT NULL,
+      data TEXT NOT NULL,
+      updated_at BIGINT NOT NULL,
+      PRIMARY KEY (workspace_id, area)
+    )`),
   ]);
+  await ensureEmployeeDirectoryTable();
+  const existing = await env.DB.prepare("SELECT data FROM portal_state WHERE workspace_id = ?").bind(workspaceId).first<{ data: string }>();
+  const stored = parseJson<Record<string, unknown>>(existing?.data, {});
+  const containsLegacySamples = stored.dataMode === "sample"
+    || (Array.isArray(stored.requests) && stored.requests.some(item => String((item as Record<string, unknown>).id || "").includes("SAMPLE")));
+  if (containsLegacySamples) {
+    const now = Date.now();
+    await env.DB.batch([
+      env.DB.prepare("UPDATE portal_state SET data = ?, updated_at = ? WHERE workspace_id = ?")
+        .bind(JSON.stringify(sharedData(defaultPortalState)), now, workspaceId),
+      env.DB.prepare("DELETE FROM portal_feature_state WHERE workspace_id = ?").bind(workspaceId),
+      env.DB.prepare("DELETE FROM portal_user_state"),
+      env.DB.prepare("DELETE FROM portal_user_data"),
+    ]);
+  }
 }
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
@@ -32,17 +56,10 @@ function parseJson<T>(value: string | null | undefined, fallback: T): T {
   try { return JSON.parse(value) as T; } catch { return fallback; }
 }
 
-function validateState(data: unknown): data is Record<string, unknown> {
-  if (!data || typeof data !== "object" || Array.isArray(data)) return false;
-  const value = data as Record<string, unknown>;
-  if (!value.profile || typeof value.profile !== "object" || !value.preferences || typeof value.preferences !== "object") return false;
-  if (!value.features || typeof value.features !== "object" || !value.adminSettings || typeof value.adminSettings !== "object") return false;
-  return arrayFields.every(field => Array.isArray(value[field]));
-}
-
 function sharedData(value: Record<string, unknown>) {
   const result = { ...value };
   delete result.profile; delete result.preferences; delete result.widgets;
+  delete result.employees;
   for (const field of personalFields) delete result[field];
   return result;
 }
@@ -61,23 +78,67 @@ function mergeEmployeeRequests(currentValue: unknown, incomingValue: unknown, us
   return { requests: [...added, ...merged], added };
 }
 
+function mergeEmployeeConversations(currentValue: unknown, incomingValue: unknown, email: string) {
+  const normalized = email.toLowerCase();
+  const current = Array.isArray(currentValue) ? currentValue as Conversation[] : [];
+  const incoming = Array.isArray(incomingValue) ? incomingValue as Conversation[] : [];
+  return [...incoming.filter(item => item.members.some(member => member.toLowerCase() === normalized)), ...current.filter(item => !item.members.some(member => member.toLowerCase() === normalized))];
+}
+
 export async function GET(request: Request) {
   const auth = requirePortalUser(request);
   if (auth.response || !auth.user) return auth.response;
   try {
     await ensureTables();
-    const [shared, personalState, personalContent] = await env.DB.batch([
+    await ensureSessionEmployee(auth.user);
+    const [shared, personalState, personalContent, employees] = await env.DB.batch([
       env.DB.prepare("SELECT data, updated_at FROM portal_state WHERE workspace_id = ?").bind(workspaceId),
       env.DB.prepare("SELECT profile, preferences, widgets, updated_at FROM portal_user_state WHERE user_id = ?").bind(auth.user.id),
       env.DB.prepare("SELECT data, updated_at FROM portal_user_data WHERE user_id = ?").bind(auth.user.id),
+      env.DB.prepare("SELECT google_id, email, name, given_name, family_name, photo_url, locale, job_title, department, phone, location, status, joined_at, last_login_at FROM portal_employees WHERE status = 'Active' ORDER BY name ASC"),
     ]);
     const sharedRow = (shared.results?.[0] || null) as { data?: string; updated_at?: number } | null;
     const stateRow = (personalState.results?.[0] || null) as { profile?: string; preferences?: string; widgets?: string; updated_at?: number } | null;
     const contentRow = (personalContent.results?.[0] || null) as { data?: string; updated_at?: number } | null;
-    const data = parseJson<Record<string, unknown> | null>(sharedRow?.data, null);
-    if (data) {
-      const savedProfile = parseJson<Record<string, unknown>>(stateRow?.profile, (data.profile || {}) as Record<string, unknown>);
-      data.profile = { ...savedProfile, email: auth.user.email, name: savedProfile.name || auth.user.name };
+    const data = parseJson<Record<string, unknown>>(sharedRow?.data, structuredClone(defaultPortalState) as unknown as Record<string, unknown>);
+    const employeeRows = (employees.results || []) as Array<Record<string, unknown>>;
+    data.employees = employeeRows.map(row => ({
+      id: String(row.google_id),
+      googleId: String(row.google_id),
+      email: String(row.email),
+      name: String(row.name),
+      givenName: String(row.given_name),
+      familyName: String(row.family_name),
+      photoUrl: String(row.photo_url),
+      locale: String(row.locale),
+      jobTitle: String(row.job_title),
+      department: String(row.department),
+      phone: String(row.phone),
+      location: String(row.location),
+      status: String(row.status) as Employee["status"],
+      joinedAt: new Date(Number(row.joined_at)).toISOString(),
+      lastLoginAt: new Date(Number(row.last_login_at)).toISOString(),
+    } satisfies Employee));
+    const featureRevisions: Record<string, number> = {};
+    {
+      const featureRows = await env.DB.prepare("SELECT area, data, updated_at FROM portal_feature_state WHERE workspace_id = ?").bind(workspaceId).all<{ area: string; data: string; updated_at: number }>();
+      for (const row of featureRows.results || []) {
+        if (featureAreas.includes(row.area as (typeof featureAreas)[number])) {
+          data[row.area] = parseJson(row.data, data[row.area]);
+          featureRevisions[row.area] = row.updated_at;
+        }
+      }
+      const employeeEmails = new Set(employeeRows.map(row => String(row.email).toLowerCase()));
+      data.conversations = (Array.isArray(data.conversations) ? data.conversations : []).filter(item => {
+        if (!item || typeof item !== "object") return false;
+        const conversation = item as Record<string, unknown>;
+        const members = Array.isArray(conversation.members) ? conversation.members : [];
+        return conversation.type === "Direct" && members.length === 2 && members.every(member => employeeEmails.has(String(member).toLowerCase())) && members.some(member => String(member).toLowerCase() === auth.user.email.toLowerCase());
+      });
+      const savedProfile = stateRow
+        ? parseJson<Record<string, unknown>>(stateRow.profile, (data.profile || {}) as Record<string, unknown>)
+        : { ...((data.profile || {}) as Record<string, unknown>), name: auth.user.name, email: auth.user.email };
+      data.profile = { ...savedProfile, email: auth.user.email, name: stateRow ? savedProfile.name || auth.user.name : auth.user.name };
       data.preferences = parseJson(stateRow?.preferences, data.preferences || {});
       data.widgets = parseJson(stateRow?.widgets, data.widgets || []);
       Object.assign(data, parseJson(contentRow?.data, personalData(data)));
@@ -86,7 +147,7 @@ export async function GET(request: Request) {
         data.approvals = [];
       }
     }
-    return Response.json({ data, revision: sharedRow?.updated_at || 0, personalRevision: Math.max(stateRow?.updated_at || 0, contentRow?.updated_at || 0), user: auth.user }, { headers: { "cache-control": "no-store" } });
+    return Response.json({ data, revision: sharedRow?.updated_at || 0, personalRevision: Math.max(stateRow?.updated_at || 0, contentRow?.updated_at || 0), featureRevisions, user: auth.user }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Unable to load portal data" }, { status: 503, headers: { "cache-control": "no-store" } });
   }
@@ -98,8 +159,11 @@ export async function PUT(request: Request) {
   try {
     await ensureTables();
     const payload = await request.json() as { data?: unknown; revision?: number; personalRevision?: number };
-    if (!validateState(payload.data)) return Response.json({ error: "Portal data is incomplete or invalid" }, { status: 400 });
+    if (!validatePortalState(payload.data)) return Response.json({ error: "Portal data is incomplete or semantically invalid" }, { status: 400 });
     const incoming = payload.data;
+    const employeeRows = await env.DB.prepare("SELECT email FROM portal_employees WHERE status = 'Active'").all<{ email: string }>();
+    const employeeEmails = new Set((employeeRows.results || []).map(row => row.email.toLowerCase()));
+    if ((incoming.conversations as Conversation[]).some(conversation => !conversation.members.includes(auth.user.email) || conversation.members.some(member => !employeeEmails.has(member.toLowerCase())))) return Response.json({ error: "Direct messages can only include the signed-in employee and one active colleague" }, { status: 400 });
     const serialized = JSON.stringify(incoming);
     if (serialized.length > 2_000_000) return Response.json({ error: "Portal data is too large" }, { status: 413 });
     const [current, userState, userContent] = await Promise.all([
@@ -108,7 +172,12 @@ export async function PUT(request: Request) {
       env.DB.prepare("SELECT updated_at FROM portal_user_data WHERE user_id = ?").bind(auth.user.id).first<{ updated_at: number }>(),
     ]);
     const currentData = parseJson<Record<string, unknown>>(current?.data, {});
+    const featureRows = await env.DB.prepare("SELECT area, data FROM portal_feature_state WHERE workspace_id = ?").bind(workspaceId).all<{ area: string; data: string }>();
+    for (const row of featureRows.results || []) {
+      if (featureAreas.includes(row.area as (typeof featureAreas)[number])) currentData[row.area] = parseJson(row.data, currentData[row.area]);
+    }
     const nextShared = sharedData(incoming);
+    nextShared.conversations = mergeEmployeeConversations(currentData.conversations, incoming.conversations, auth.user.email);
     if (!auth.user.isAdmin) {
       nextShared.features = currentData.features || incoming.features;
       nextShared.adminSettings = currentData.adminSettings || incoming.adminSettings;

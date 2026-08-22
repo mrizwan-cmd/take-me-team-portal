@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { featureLabels, makeId, type AdminSettings, type FeatureKey, type PortalState } from "./portal-data";
+import { featureLabels, formatDateTime, makeId, type AdminSettings, type FeatureKey, type PortalState } from "./portal-data";
 import { Field, GoogleGLogo, Modal, PageIntro, SettingCard, StatusPill, SvgIcon, Toggle, type Notify } from "./portal-ui";
 import type { UpdatePortal } from "./employee-portal";
 import type { RealtimeControls } from "./use-realtime";
@@ -24,7 +24,7 @@ export default function AdminPortal(props: AdminProps) {
 }
 
 const setting = (updateState: UpdatePortal, key: keyof AdminSettings, value: string | boolean) => updateState(current => ({ ...current, adminSettings: { ...current.adminSettings, [key]: value } }));
-const audit = (current: PortalState, action: string, area: string) => ({ ...current, audit: [{ id: makeId("AUD"), actor: current.profile.name, action, area, time: "Just now" }, ...current.audit] });
+const audit = (current: PortalState, action: string, area: string) => ({ ...current, audit: [{ id: makeId("AUD"), actor: current.profile.name, action, area, time: formatDateTime() }, ...current.audit] });
 
 function AdminOverview({ state, navigate, notify }: AdminProps) {
   const [health, setHealth] = useState<{ database: string; fileStorage: string; googleWorkspace: string; realtime: string } | null>(null);
@@ -51,7 +51,7 @@ function AdminOverview({ state, navigate, notify }: AdminProps) {
     <div className="page admin-page">
       <PageIntro eyebrow="ADMINISTRATION" title="Portal overview" text="Manage the complete Take Me employee experience, integrations and company workspaces." action={<button className="primary" onClick={() => navigate("Feature controls")}>Manage features</button>} />
       <div className="admin-kpis">
-        {[["286", "Active employees", "+4 this month"], [String(activeFeatures), "Enabled features", `${Object.keys(state.features).length} available`], [String(pending), "Pending approvals", "2 due today"], [String(dueTasks), "Open tasks", "Across workspace"]].map(item => (
+        {[[String(state.employees.length), "Employee directory", "Verified Google sign-ins"], [String(activeFeatures), "Enabled features", `${Object.keys(state.features).length} available`], [String(pending), "Pending approvals", "Current workspace"], [String(dueTasks), "Open tasks", "Current workspace"]].map(item => (
           <section className="card" key={item[1]}>
             <span>{item[1]}</span>
             <b>{item[0]}</b>
@@ -67,8 +67,8 @@ function AdminOverview({ state, navigate, notify }: AdminProps) {
           </div>
           <div className="module-list">
             {[
-              ["People and directory", "People & access", state.features.people, "286 employees", "people"],
-              ["Forms and approvals", "Forms & workflows", state.features.requests, "18 forms", "requests"],
+              ["People and directory", "People & access", state.features.people, `${state.employees.length} employees`, "people"],
+              ["Forms and approvals", "Forms & workflows", state.features.requests, `${state.requests.length} requests`, "requests"],
               ["Projects and boards", "Project management", state.features.projects, `${state.projectBoards.filter(board => !board.archived).length} boards`, "projects"],
               ["Google Workspace", "Integrations", state.adminSettings.googleConnected, state.adminSettings.googleConnected ? "Connected" : "Setup required", "link"],
               ["Knowledge and documents", "Content", state.features.knowledge, `${state.articles.length} articles`, "knowledge"],
@@ -105,15 +105,9 @@ function AdminOverview({ state, navigate, notify }: AdminProps) {
         <section className="card">
           <div className="card-head">
             <h3>Usage this month</h3>
-            <button onClick={() => notify("Analytics export is not connected yet; no report was generated")}>Export</button>
+            <button disabled title="Connect an analytics provider to enable exports">Export unavailable</button>
           </div>
-          <div className="mini-chart" aria-label="Portal usage chart">
-            {[42, 58, 50, 76, 68, 88, 81].map((value, index) => <i key={index} style={{ height: `${value}%` }} />)}
-          </div>
-          <div className="chart-legend">
-            <span><b>1,842</b> visits</span>
-            <span><b>74%</b> weekly active</span>
-          </div>
+          <p className="prototype-note">No analytics provider is connected. Live usage figures will appear here after configuration.</p>
         </section>
       </div>
     </div>
@@ -123,9 +117,9 @@ function AdminOverview({ state, navigate, notify }: AdminProps) {
 function PeopleAccess({ state, updateState, notify }: AdminProps) {
   const [editor, setEditor] = useState("");
   return (
-    <AdminPage title="People & access" text="Control employee accounts, roles, invitations and Google directory provisioning." save={() => notify("People and access settings saved")}>
+    <AdminPage title="People & access" text="Control employee accounts, roles, invitations and Google directory provisioning." autosave>
       <div className="settings-kpis">
-        {[["286", "Active employees"], ["5", "Pending invitations"], ["14", "Department admins"], ["3", "Suspended accounts"]].map(item => (
+        {[[String(state.employees.length), "Active employees"], ["0", "Pending invitations"], ["0", "Department admins"], [String(state.employees.filter(employee => employee.status === "Suspended").length), "Suspended accounts"]].map(item => (
           <section className="card" key={item[1]}><b>{item[0]}</b><span>{item[1]}</span></section>
         ))}
       </div>
@@ -134,10 +128,10 @@ function PeopleAccess({ state, updateState, notify }: AdminProps) {
           <Toggle title="Google Workspace sign-in" description="Only company Google accounts can sign in." checked={state.features.directorySync} onChange={value => updateState(current => ({ ...current, features: { ...current.features, directorySync: value } }))} />
           <Toggle title="Create profiles from directory sync" description="Automatically add new employees from Workspace." checked={state.features.people} onChange={value => updateState(current => ({ ...current, features: { ...current.features, people: value } }))} />
           <Toggle title="Suspend access for leavers" description="Disable access when the Workspace account is suspended." checked={state.adminSettings.suspendLeavers} onChange={value => setting(updateState, "suspendLeavers", value)} />
-          <div className="card-actions"><button className="primary" onClick={() => notify("Provisioning settings saved")}>Save provisioning</button></div>
+          <p className="autosave-note">Changes save automatically.</p>
         </SettingCard>
         <SettingCard title="Roles and permissions" description="Review what each employee group can view and manage.">
-          {[["Super administrator", "3 members"], ["Department administrator", "14 members"], ["Manager", "38 members"], ["Employee", "231 members"]].map(role => (
+          {[["Super administrator", "Configured by access policy"], ["Department administrator", "No assignments"], ["Manager", "No assignments"], ["Employee", `${state.employees.length} members`]].map(role => (
             <button className="setting-link" key={role[0]} onClick={() => setEditor(role[0])}>
               <span><b>{role[0]}</b><small>{role[1]}</small></span>
               <em>›</em>
@@ -151,12 +145,15 @@ function PeopleAccess({ state, updateState, notify }: AdminProps) {
   );
 }
 
-function Departments({ notify }: AdminProps) {
+function Departments({ state, notify }: AdminProps) {
   const [editor, setEditor] = useState("");
-  const rows = [["Operations", "Muneeb Rizwan", "74", "Leicester"], ["Customer Support", "Sofia Khan", "63", "Nottingham"], ["Marketing", "Daniel Cole", "18", "London"], ["Finance", "Priya Shah", "22", "Leicester"], ["People", "Amelia Brown", "12", "London"]];
+  const rows = Array.from(new Set(state.employees.map(employee => employee.department).filter(Boolean))).sort().map(department => {
+    const members = state.employees.filter(employee => employee.department === department);
+    return [department, "Not assigned", String(members.length), members.find(employee => employee.location)?.location || "Not set"];
+  });
   return (
-    <AdminPage title="Departments" text="Organise teams, managers, locations and departmental ownership." save={() => notify("Department settings saved")}>
-      <SettingCard title="Company structure" description="Departments control targeted content, permissions, forms and reporting." badge="12 departments">
+    <AdminPage title="Departments" text="Organise teams, managers, locations and departmental ownership.">
+      <SettingCard title="Company structure" description="Departments control targeted content, permissions, forms and reporting." badge={`${rows.length} departments`}>
         <div className="admin-table">
           <div className="table-head department-head">
             <span>Department</span>
@@ -188,7 +185,7 @@ function Departments({ notify }: AdminProps) {
 function Workflows({ state, updateState, notify }: AdminProps) {
   const [editor, setEditor] = useState("");
   return (
-    <AdminPage title="Forms & workflows" text="Build employee forms, templates and approval routes." save={() => notify("Workflow settings saved")}>
+    <AdminPage title="Forms & workflows" text="Build employee forms, templates and approval routes." autosave>
       <div className="settings-columns">
         <SettingCard title="Request forms" description="Published forms available from Quick create." badge="18 active">
           {[["Purchase order request", "3 approval steps"], ["Marketing support", "2 approval steps"], ["IT access request", "1 approval step"], ["Leave request", "Manager approval"], ["Equipment request", "IT & facilities review"]].map(form => (
@@ -203,7 +200,7 @@ function Workflows({ state, updateState, notify }: AdminProps) {
           <Field label="Reminder after" value={state.adminSettings.approvalReminderDays} onChange={value => setting(updateState, "approvalReminderDays", value)} />
           <Field label="Escalate after" value={state.adminSettings.approvalEscalationDays} onChange={value => setting(updateState, "approvalEscalationDays", value)} />
           <Toggle title="Allow approval delegation" description="Approvers can nominate a delegate while away." checked={state.adminSettings.approvalDelegation} onChange={value => setting(updateState, "approvalDelegation", value)} />
-          <div className="card-actions"><button className="primary" onClick={() => notify("Workflow defaults saved")}>Save defaults</button></div>
+          <p className="autosave-note">Changes save automatically.</p>
         </SettingCard>
       </div>
       {editor && <AdminEditor title={editor} close={() => setEditor("")} notify={notify} fields={["Form name", "Fields", "Approvers", "Reminder and escalation", "Who can submit"]} />}
@@ -214,7 +211,7 @@ function Workflows({ state, updateState, notify }: AdminProps) {
 function PurchaseOrders({ state, updateState, notify }: AdminProps) {
   const [editor, setEditor] = useState("");
   return (
-    <AdminPage title="Purchase orders" text="Configure procurement rules, suppliers, thresholds and numbering." save={() => notify("Purchase order settings saved")}>
+    <AdminPage title="Purchase orders" text="Configure procurement rules, suppliers, thresholds and numbering." autosave>
       <div className="settings-columns">
         <SettingCard title="Approval thresholds" description="Route purchase requests according to total value.">
           {[["Up to £500", "Line manager"], ["£501–£5,000", "Department head"], ["£5,001–£25,000", "Finance director"], ["Above £25,000", "Executive approval"]].map(rule => (
@@ -228,9 +225,8 @@ function PurchaseOrders({ state, updateState, notify }: AdminProps) {
         <SettingCard title="Numbering & policy" description="Configure PO prefixes and mandatory supplier fields.">
           <Field label="PO prefix" value={state.adminSettings.poPrefix} onChange={value => setting(updateState, "poPrefix", value)} />
           <Field label="Default currency" value={state.adminSettings.defaultCurrency} onChange={value => setting(updateState, "defaultCurrency", value)} />
-          <Toggle title="Require supplier quotation" description="A quotation must be attached before submission." checked={true} onChange={() => notify("Supplier quotation rule updated")} />
-          <Toggle title="Check duplicate invoices" description="Compare supplier and invoice references." checked={true} onChange={() => notify("Duplicate checking updated")} />
-          <div className="card-actions"><button className="primary" onClick={() => notify("PO configuration saved")}>Save configuration</button></div>
+          <p className="prototype-note">Supplier quotation and duplicate-invoice enforcement are not active. These controls require a procurement service before they can be enabled.</p>
+          <p className="autosave-note">Prefix and currency changes save automatically.</p>
         </SettingCard>
       </div>
       {editor && <AdminEditor title={editor} close={() => setEditor("")} notify={notify} fields={["Minimum value", "Maximum value", "Approver role", "Additional finance approval"]} />}
@@ -238,7 +234,7 @@ function PurchaseOrders({ state, updateState, notify }: AdminProps) {
   );
 }
 
-function FeatureControls({ state, updateState, notify }: AdminProps) {
+function FeatureControls({ state, updateState }: AdminProps) {
   const groups: [string, FeatureKey[]][] = [
     ["Everyday work", ["actionInbox", "tasks", "projects", "people", "requests", "calendar", "knowledge", "documents", "chat", "leave"]],
     ["Google Workspace", ["googleCalendar", "googleDrive", "directorySync", "notifications"]],
@@ -246,7 +242,7 @@ function FeatureControls({ state, updateState, notify }: AdminProps) {
   ];
 
   return (
-    <AdminPage title="Feature controls" text="Enable or disable every portal capability and decide what appears to employees." save={() => notify("Feature controls saved")}>
+    <AdminPage title="Feature controls" text="Enable or disable every portal capability and decide what appears to employees." autosave>
       <div className="feature-groups">
         {groups.map(group => (
           <SettingCard key={group[0]} title={group[0]} description="Changes are reflected throughout the employee portal.">
@@ -273,7 +269,7 @@ function ProjectManagement({ state, updateState, navigate, notify }: AdminProps)
   const totalCards = boards.reduce((acc, board) => acc + board.cards.filter(card => !card.archived).length, 0);
 
   return (
-    <AdminPage title="Project management" text="Oversee company boards, workspace permissions, default automations and Google integrations." save={() => notify("Project management settings saved")}>
+    <AdminPage title="Project management" text="Oversee company boards, workspace permissions, default automations and Google integrations." autosave>
       <div className="settings-kpis">
         {[
           [String(boards.length), "Active boards"],
@@ -372,7 +368,7 @@ function ProjectManagement({ state, updateState, navigate, notify }: AdminProps)
             onChange={value => setting(updateState, "projectGoogleDrive", value)}
           />
           <div className="card-actions">
-            <button className="primary" onClick={() => notify("Project defaults saved")}>Save project defaults</button>
+            <span className="autosave-note">Changes save automatically.</span>
           </div>
         </SettingCard>
       </div>
@@ -380,39 +376,36 @@ function ProjectManagement({ state, updateState, navigate, notify }: AdminProps)
   );
 }
 
-function ContentSettings({ state, updateState, notify }: AdminProps) {
+function ContentSettings({ state, updateState }: AdminProps) {
   return (
-    <AdminPage title="Content & knowledge" text="Manage policies, company guidance, review schedules and home page highlights." save={() => notify("Content settings saved")}>
+    <AdminPage title="Content & knowledge" text="Manage policies, company guidance, review schedules and home page highlights." autosave>
       <div className="settings-columns">
         <SettingCard title="Knowledge review governance" description="Ensure policies remain accurate with required annual reviews.">
           <Toggle title="Mandatory review workflows" description="Alert owners 30 days before review dates." checked={state.adminSettings.contentReview} onChange={value => setting(updateState, "contentReview", value)} />
           <Toggle title="Policy acknowledgements" description="Record employee acknowledgement on major policy changes." checked={state.adminSettings.policyAcknowledgement} onChange={value => setting(updateState, "policyAcknowledgement", value)} />
-          <div className="card-actions"><button className="primary" onClick={() => notify("Review settings saved")}>Save review settings</button></div>
+          <p className="autosave-note">Changes save automatically.</p>
         </SettingCard>
         <SettingCard title="Featured home story" description="Select the announcement displayed to employees on Home.">
-          <Field label="Story title" value="Welcome to our new London workspace" onChange={() => undefined} />
-          <Field label="Summary" value="Take a look inside the new collaborative home and meet the team who made it happen." onChange={() => undefined} />
-          <div className="card-actions"><button className="primary" onClick={() => notify("Featured story updated")}>Update featured story</button></div>
+          <p className="prototype-note">No featured story is published. Add company content before selecting a home-page highlight.</p>
         </SettingCard>
       </div>
     </AdminPage>
   );
 }
 
-function NotificationSettings({ state, updateState, notify }: AdminProps) {
+function NotificationSettings({ state, updateState }: AdminProps) {
   return (
-    <AdminPage title="Notification centre" text="Configure company broadcasts, channel announcements and delivery channels." save={() => notify("Notification settings saved")}>
+    <AdminPage title="Notification centre" text="Configure company broadcasts, channel announcements and delivery channels." autosave>
       <div className="settings-columns">
         <SettingCard title="Delivery channels" description="Where portal announcements and urgent alerts are sent.">
           <Toggle title="Portal notification panel" description="In-app alerts and counter badges." checked={state.features.notifications} onChange={value => updateState(current => ({ ...current, features: { ...current.features, notifications: value } }))} />
           <Toggle title="Daily email digest" description="Send employees their daily action summary at 08:30." checked={state.adminSettings.dailyDigest} onChange={value => setting(updateState, "dailyDigest", value)} />
           <Toggle title="Google Chat announcements" description="Post urgent company messages to Google Chat spaces." checked={state.adminSettings.urgentGoogleChat} onChange={value => setting(updateState, "urgentGoogleChat", value)} />
-          <div className="card-actions"><button className="primary" onClick={() => notify("Notification settings saved")}>Save delivery</button></div>
+          <p className="autosave-note">Available channel settings save automatically.</p>
         </SettingCard>
         <SettingCard title="Send company broadcast" description="Send an immediate notice to every employee.">
-          <Field label="Broadcast title" value="" placeholder="e.g. System maintenance this evening" onChange={() => undefined} />
-          <Field label="Message details" value="" placeholder="Explain the key details and any required employee action" onChange={() => undefined} />
-          <div className="card-actions"><button className="primary" onClick={() => notify("Broadcast scheduled for all employees")}>Send broadcast</button></div>
+          <p className="prototype-note">Broadcast delivery is unavailable until a notification provider and delivery audit are configured.</p>
+          <div className="card-actions"><button className="primary" disabled>Broadcast unavailable</button></div>
         </SettingCard>
       </div>
     </AdminPage>
@@ -497,7 +490,7 @@ function Integrations({ state, updateState, notify, realtime }: AdminProps) {
   const loginCallbackAddress = useMemo(() => "/api/auth/google/login/callback", []);
 
   return (
-    <AdminPage title="Integrations" text="Connect Google Workspace and external business systems." save={() => notify("Integration settings saved")}>
+    <AdminPage title="Integrations" text="Connect Google Workspace and external business systems." autosave>
       <div className="segmented">{["Google Workspace", "Communication", "Business tools"].map(value => <button className={tab === value ? "active" : ""} key={value} onClick={() => setTab(value)}>{value}</button>)}</div>
       {tab === "Google Workspace" && (
         <>
@@ -598,17 +591,15 @@ function Integrations({ state, updateState, notify, realtime }: AdminProps) {
       {tab === "Communication" && (
         <div className="settings-columns">
           <SettingCard title="Google Chat" description="Portal notifications and request updates." badge="Connector required">
-            <Toggle title="Approval notifications" description="Notify approvers when a request needs attention." checked={true} onChange={() => notify("The Google Chat connector is not active; this rule was not changed")} />
+            <p className="prototype-note">Google Chat approval notifications are unavailable until the connector is configured.</p>
             <Toggle title="Urgent notices" description="Post important announcements and service updates." checked={google.urgentGoogleChat} onChange={value => setting(updateState, "urgentGoogleChat", value)} />
             <Field label="Default Google Chat space" value={google.chatSpace} onChange={value => setting(updateState, "chatSpace", value)} />
-            <div className="card-actions"><button className="primary" onClick={() => notify("Preferences saved; Google Chat delivery still requires a connector")}>Save</button></div>
           </SettingCard>
           <SettingCard title="Email through Gmail" description="Status updates, digests and reminders.">
             <Toggle title="Daily approval summary" description="Send managers their pending decisions." checked={google.dailyDigest} onChange={value => setting(updateState, "dailyDigest", value)} />
-            <Toggle title="Request status updates" description="Email employees when status changes." checked={true} onChange={() => notify("Gmail delivery is not active; this rule was not changed")} />
+            <p className="prototype-note">Gmail request-status delivery is unavailable until a mail connector is configured.</p>
             <div className="card-actions">
-              <button className="secondary" onClick={() => notify("Gmail delivery is not connected; no test email was sent")}>Send test</button>
-              <button className="primary" onClick={() => notify("Email preferences saved; Gmail delivery still requires a connector")}>Save</button>
+              <button className="secondary" disabled title="Connect Gmail delivery to send a test">Send test unavailable</button>
             </div>
           </SettingCard>
         </div>
@@ -621,7 +612,7 @@ function Integrations({ state, updateState, notify, realtime }: AdminProps) {
             <Toggle title="Employee presence" description="Show connected employees and the portal area they are viewing." checked={google.realtimePresence} onChange={value => setting(updateState, "realtimePresence", value)} />
             <Field label="Background refresh interval (seconds)" value={google.realtimePollingSeconds} placeholder="3" onChange={value => setting(updateState, "realtimePollingSeconds", value.replace(/[^0-9]/g, "").slice(0, 2))} />
             <p className="field-help">Vercel uses background synchronization automatically. Forge switches to instant WebSockets when REALTIME_URL and the realtime daemon are configured.</p>
-            <div className="card-actions"><button className="primary" onClick={() => notify("Live collaboration settings saved")}>Save collaboration settings</button></div>
+            <p className="autosave-note">Changes save automatically.</p>
           </SettingCard>
           <SettingCard title="Realtime connection" description="Current employee-session transport and deployment readiness." badge={realtime.configured ? "Gateway configured" : "Polling fallback"}>
             <div className="health-row"><span>Current transport</span><StatusPill value={realtime.status === "live" ? "WebSocket live" : realtime.status === "offline" ? "Offline" : "Background sync"} /></div>
@@ -655,31 +646,31 @@ function Integrations({ state, updateState, notify, realtime }: AdminProps) {
   );
 }
 
-function SecuritySettings({ state, updateState, notify }: AdminProps) {
+function SecuritySettings({ state, updateState }: AdminProps) {
   return (
-    <AdminPage title="Security & compliance" text="Session controls, audit retention and multi-factor authentication requirements." save={() => notify("Security settings saved")}>
+    <AdminPage title="Security & compliance" text="Session controls, audit retention and multi-factor authentication requirements." autosave>
       <div className="settings-columns">
         <SettingCard title="Session security" description="Protect company information across employee devices.">
           <Field label="Session timeout" value={state.adminSettings.sessionTimeout} onChange={value => setting(updateState, "sessionTimeout", value)} />
           <Toggle title="Enforce multi-factor authentication (MFA)" description="Require 2FA through Google Workspace." checked={state.adminSettings.requireMfa} onChange={value => setting(updateState, "requireMfa", value)} />
-          <div className="card-actions"><button className="primary" onClick={() => notify("Session security saved")}>Save session security</button></div>
+          <p className="autosave-note">Changes save automatically.</p>
         </SettingCard>
         <SettingCard title="Audit and compliance" description="Track every administrator and employee action across the portal.">
           <Field label="Audit log retention" value={state.adminSettings.auditRetention} onChange={value => setting(updateState, "auditRetention", value)} />
-          <div className="card-actions"><button className="primary" onClick={() => notify("Audit retention saved")}>Save retention</button></div>
+          <p className="autosave-note">Changes save automatically.</p>
         </SettingCard>
       </div>
     </AdminPage>
   );
 }
 
-function AuditLog({ state, notify }: AdminProps) {
+function AuditLog({ state }: AdminProps) {
   return (
     <AdminPage title="Audit log" text="A tamper-evident log of administrative changes, feature toggles and company decisions.">
       <section className="card data-card">
         <div className="card-head padded">
           <h3>Recent activity ({state.audit.length} entries)</h3>
-          <button onClick={() => notify("Audit export is not connected yet; no CSV was downloaded")}>Export CSV →</button>
+          <button disabled title="Audit export is not connected">Export unavailable</button>
         </div>
         <div className="data-head audit-head">
           <span>Actor</span>
@@ -700,23 +691,22 @@ function AuditLog({ state, notify }: AdminProps) {
   );
 }
 
-function AdminPage({ title, text, children, save }: { title: string; text: string; children: React.ReactNode; save?: () => void }) {
+function AdminPage({ title, text, children, autosave = false }: { title: string; text: string; children: React.ReactNode; autosave?: boolean }) {
   return (
     <div className="page admin-page">
-      <PageIntro eyebrow="ADMINISTRATION" title={title} text={text} action={save && <button className="primary" onClick={save}>Save changes</button>} />
+      <PageIntro eyebrow="ADMINISTRATION" title={title} text={text} action={autosave && <span className="autosave-note" role="status">Changes save automatically</span>} />
       {children}
     </div>
   );
 }
 
-function AdminEditor({ title, fields, close, notify }: { title: string; fields: string[]; close: () => void; notify: Notify }) {
+function AdminEditor({ title, close }: { title: string; fields: string[]; close: () => void; notify: Notify }) {
   return (
     <Modal title={title} eyebrow="CONFIGURATION" close={close} className="medium-modal">
       <div className="create-form">
-        {fields.map(field => <Field key={field} label={field} value="" onChange={() => undefined} placeholder={`Enter ${field.toLowerCase()}`} />)}
+        <p className="prototype-note">{title} is sample configuration. Editing is unavailable until its dedicated service is connected.</p>
         <div className="modal-actions">
-          <button className="secondary" onClick={close}>Cancel</button>
-          <button className="primary" onClick={() => { notify(`${title} saved`); close(); }}>Save</button>
+          <button className="secondary" onClick={close}>Close</button>
         </div>
       </div>
     </Modal>

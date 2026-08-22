@@ -31,7 +31,7 @@ export function portalUser(request: Request): PortalUser | null {
   if (!id || !email) return null;
   const domain = (process.env.PORTAL_ALLOWED_DOMAIN || "takeme.taxi").toLowerCase().replace(/^@/, "");
   if (!email.endsWith(`@${domain}`)) return null;
-  const admins = emailSet(process.env.PORTAL_ADMIN_EMAILS || "muneeb.rizwan@takeme.taxi");
+  const admins = emailSet(process.env.PORTAL_ADMIN_EMAILS || "mrizwan@takeme.taxi");
   const managers = emailSet(process.env.PORTAL_MANAGER_EMAILS);
   const isAdmin = admins.has(email);
   return { id, email, name: name || nameFromEmail(email), isAdmin, canApprove: isAdmin || managers.has(email), localDevelopment: isLocal };

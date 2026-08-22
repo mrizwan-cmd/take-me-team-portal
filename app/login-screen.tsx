@@ -9,53 +9,26 @@ const errorMessages: Record<string, string> = {
   domain: "That account is not part of the Take Me Google Workspace. Use your @takeme.taxi email.",
   expired: "The sign-in request expired. Please start again.",
   setup: "Google company sign-in is waiting for administrator configuration.",
+  credentials: "Google rejected the configured OAuth client or secret. Check that both values belong to the same Web application client.",
+  identity: "Google returned an identity that could not be verified for this portal. Use your Take Me Workspace account.",
+  directory: "Google sign-in succeeded, but your employee directory record could not be created. Contact IT support.",
+  session: "Google sign-in succeeded, but the secure portal session could not be created. Contact IT support.",
   failed: "Google sign-in could not be completed. Please try again or contact IT support.",
 };
 
 export default function LoginScreen({ offline = false }: { offline?: boolean }) {
   const [message, setMessage] = useState("");
-  const [temporaryEnabled, setTemporaryEnabled] = useState(false);
-  const [temporaryOpen, setTemporaryOpen] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [trace, setTrace] = useState("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const reason = new URLSearchParams(window.location.search).get("login_error") || "";
+      const params = new URLSearchParams(window.location.search);
+      const reason = params.get("login_error") || "";
       setMessage(errorMessages[reason] || "");
+      setTrace((params.get("login_trace") || "").replace(/[^a-zA-Z0-9_-]/gu, "").slice(0, 20));
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/auth/temp-admin", { cache: "no-store" })
-      .then(response => response.json())
-      .then((result: { enabled?: boolean }) => { if (active) setTemporaryEnabled(Boolean(result.enabled)); })
-      .catch(() => undefined);
-    return () => { active = false; };
-  }, []);
-
-  const temporaryLogin = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (offline || submitting) return;
-    setSubmitting(true);
-    setMessage("");
-    try {
-      const response = await fetch("/api/auth/temp-admin", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-      const result = await response.json() as { error?: string; destination?: string };
-      if (!response.ok || !result.destination) throw new Error(result.error || "Temporary sign-in could not be completed");
-      window.location.assign(result.destination);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Temporary sign-in could not be completed");
-      setSubmitting(false);
-    }
-  };
 
   return (
     <main className="login-screen">
@@ -96,7 +69,7 @@ export default function LoginScreen({ offline = false }: { offline?: boolean }) 
           <p className="eyebrow">TAKE ME TEAM PORTAL</p>
           <h2>Welcome to work.</h2>
           <p>Sign in using the Google account connected to your Take Me company email.</p>
-          {message && <div className="login-message" role="alert">{message}</div>}
+          {message && <div className="login-message" role="alert">{message}{trace && <small>Support reference: <code>{trace}</code></small>}</div>}
           {offline && <div className="login-message" role="status">You are offline. Reconnect before signing in.</div>}
           <a
             className={`google-login-button ${offline ? "disabled" : ""}`}
@@ -108,31 +81,6 @@ export default function LoginScreen({ offline = false }: { offline?: boolean }) 
             <GoogleGLogo size={20} />
             <b>Continue with Google</b>
           </a>
-          {temporaryEnabled && (
-            <div className="temporary-admin-access">
-              <div className="login-divider"><span>Temporary setup access</span></div>
-              {!temporaryOpen ? (
-                <button className="temporary-admin-toggle" type="button" onClick={() => setTemporaryOpen(true)}>
-                  Sign in with admin username
-                </button>
-              ) : (
-                <form className="temporary-admin-form" onSubmit={temporaryLogin}>
-                  <label>
-                    <span>Admin username</span>
-                    <input autoComplete="username" value={username} onChange={event => setUsername(event.target.value)} required maxLength={128} />
-                  </label>
-                  <label>
-                    <span>Admin password</span>
-                    <input autoComplete="current-password" type="password" value={password} onChange={event => setPassword(event.target.value)} required maxLength={256} />
-                  </label>
-                  <button type="submit" disabled={offline || submitting}>
-                    {submitting ? "Signing in…" : "Open admin settings"}
-                  </button>
-                  <small>Temporary access expires automatically and is for initial setup only.</small>
-                </form>
-              )}
-            </div>
-          )}
           <small className="login-domain">Only verified <b>@takeme.taxi</b> Google Workspace accounts can enter.</small>
           <div className="login-assurance">
             <span>• No password storage</span>

@@ -6,7 +6,7 @@ import AdminPortal from "./admin-portal";
 import EmployeePortal from "./employee-portal";
 import LoginScreen from "./login-screen";
 import { HelpCentre, OnboardingGuide } from "./onboarding";
-import { makeId, type FeatureKey, type PortalState, type RequestItem } from "./portal-data";
+import { addDays, formatDateTime, localDateInput, makeId, type FeatureKey, type PortalState, type RequestItem } from "./portal-data";
 import { Modal, SvgIcon, Toggle } from "./portal-ui";
 import { usePortalState } from "./use-portal-state";
 
@@ -380,13 +380,14 @@ function CommandPalette({ state, query, setQuery, close, navigate, openCreate, o
       ...state.requests.map(item => ({ title: item.title, detail: `${item.id} · Request`, icon: "requests", action: () => { navigate("Requests"); close(); } })),
       ...state.documents.map(item => ({ title: item.name, detail: `${item.folder} · Document`, icon: "documents", action: () => { navigate("Documents"); close(); } })),
       ...state.articles.map(item => ({ title: item.title, detail: `${item.category} · Knowledge`, icon: "knowledge", action: () => { navigate("Knowledge"); close(); } })),
-      ...state.conversations.map(item => ({ title: item.name, detail: `${item.type} · Chat`, icon: "chat", action: () => { navigate("Chat"); close(); } })),
+      ...state.employees.map(item => ({ title: item.name, detail: `${item.jobTitle || "Employee"} · ${item.email}`, icon: "people", action: () => { navigate("People"); close(); } })),
+      ...state.conversations.map(item => ({ title: item.name, detail: "Direct message", icon: "chat", action: () => { navigate("Chat"); close(); } })),
       ...state.tasks.map(item => ({ title: item.title, detail: `${item.status} · Task`, icon: "tasks", action: () => { navigate("Tasks"); close(); } })),
     ];
     const commands = [
       ["Create a request", "request", "requests"],
       ["Create a calendar event", "event", "calendar"],
-      ["Start a conversation", "conversation", "chat"],
+      ["Message an employee", "conversation", "chat"],
       ["Add a task", "task", "tasks"],
       ["Request leave", "leave", "leave"]
     ].map(item => ({ title: item[0], detail: "Quick command", icon: item[2], action: () => { openCreate(item[1]); close(); } }));
@@ -395,9 +396,10 @@ function CommandPalette({ state, query, setQuery, close, navigate, openCreate, o
     return [...commands, sessionItem, adminItem, ...pages, ...records].filter(item => `${item.title} ${item.detail}`.toLowerCase().includes(query.toLowerCase())).slice(0, 12);
   }, [close, navigate, openAdmin, openCreate, query, state]);
 
-  useEffect(() => {
+  const updateQuery = (value: string) => {
+    setQuery(value);
     setSelectedIndex(0);
-  }, [query]);
+  };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "ArrowDown") {
@@ -419,10 +421,9 @@ function CommandPalette({ state, query, setQuery, close, navigate, openCreate, o
           <span><SvgIcon name="search" size={18} /></span>
           <input
             value={query}
-            onChange={event => setQuery(event.target.value)}
+            onChange={event => updateQuery(event.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search or type a command…"
-            autoFocus
           />
           <kbd>ESC</kbd>
         </header>
@@ -455,7 +456,7 @@ function CommandPalette({ state, query, setQuery, close, navigate, openCreate, o
 const createOptions = [
   ["request", "requests", "Request", "PO, expense, IT, marketing or facilities"],
   ["event", "calendar", "Calendar event", "Google Calendar and Meet"],
-  ["conversation", "chat", "Conversation", "Channel, group or direct message"],
+  ["conversation", "chat", "Direct message", "Message an employee who has signed in"],
   ["task", "tasks", "Task", "Personal or shared follow-up"],
   ["leave", "leave", "Leave request", "Holiday, sickness or work from home"],
 ];
@@ -482,28 +483,47 @@ function QuickCreate({ kind, state, updateState, setKind, close, notify }: { kin
 
 function CreateForm({ kind, state, updateState, close, notify, back }: { kind: string; state: PortalState; updateState: (updater: (current: PortalState) => PortalState) => void; close: () => void; notify: (message: string) => void; back: () => void }) {
   const [title, setTitle] = useState("");
-  const [type, setType] = useState(kind === "request" ? "Purchase order" : kind === "conversation" ? "Channel" : kind === "leave" ? "Annual leave" : "Normal");
+  const [type, setType] = useState(kind === "request" ? "Purchase order" : kind === "leave" ? "Annual leave" : "Normal");
   const [details, setDetails] = useState("");
-  const [date, setDate] = useState("2026-08-14");
-  const [endDate, setEndDate] = useState("2026-08-15");
+  const [date, setDate] = useState(() => localDateInput(new Date()));
+  const [endDate, setEndDate] = useState(() => localDateInput(addDays(new Date(), 1)));
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
   const [people, setPeople] = useState("");
+  const [employeeQuery, setEmployeeQuery] = useState("");
   const [amount, setAmount] = useState("");
   const [meet, setMeet] = useState(true);
   const [draft, setDraft] = useState(false);
 
+  const messageableEmployees = useMemo(
+    () => state.employees.filter(employee =>
+      employee.email !== state.profile.email
+      && employee.status === "Active"
+      && Boolean(employee.lastLoginAt),
+    ),
+    [state.employees, state.profile.email],
+  );
+  const matchingEmployees = useMemo(() => {
+    const query = employeeQuery.trim().toLocaleLowerCase();
+    if (!query) return messageableEmployees;
+    return messageableEmployees.filter(employee =>
+      [employee.name, employee.email, employee.jobTitle, employee.department]
+        .some(value => value.toLocaleLowerCase().includes(query)),
+    );
+  }, [employeeQuery, messageableEmployees]);
+
   const labels: Record<string, [string, string]> = {
     request: ["New request", "REQUESTS & WORKFLOWS"],
     event: ["Create an event", "GOOGLE CALENDAR"],
-    conversation: ["New conversation", "CHAT & CHANNELS"],
+    conversation: ["New direct message", "TEAM CHAT"],
     task: ["Add a task", "TASKS"],
     leave: ["Request time away", "LEAVE & TIME OFF"],
   };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const cleanTitle = title.trim();
+    const selectedEmployee = kind === "conversation" ? state.employees.find(employee => employee.email === people) : undefined;
+    const cleanTitle = kind === "conversation" ? selectedEmployee?.name || "" : title.trim();
     if (!cleanTitle) return;
 
     let googleEvent: { id?: string; htmlLink?: string; hangoutLink?: string } | null = null;
@@ -543,12 +563,12 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
           status: draft ? "Draft" : "Awaiting approval",
           tone: draft ? "slate" : "amber",
           requester: current.profile.name,
-          created: "Just now",
+          created: formatDateTime(),
           details,
           priority: "Normal",
           timeline: [
-            { label: "Submitted", person: current.profile.name, time: "Just now", complete: true },
-            { label: "Manager review", person: "Sofia Khan", time: "Waiting", complete: false },
+            { label: "Submitted", person: current.profile.name, time: formatDateTime(), complete: true },
+            { label: "Manager review", person: "Manager not assigned", time: "Waiting", complete: false },
             { label: "Final confirmation", person: "Portal workflow", time: "Waiting", complete: false },
           ],
         };
@@ -580,14 +600,21 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
         };
       }
       if (kind === "conversation") {
+        const existing = current.conversations.find(conversation => conversation.type === "Direct" && conversation.members.includes(people));
+        if (existing) {
+          if (details.trim()) {
+            next = { ...current, conversations: current.conversations.map(conversation => conversation.id === existing.id ? { ...conversation, messages: [...conversation.messages, { id: makeId("MSG"), author: current.profile.name, initials: initials(current.profile.name), text: details.trim(), time: "Now", mine: true }] } : conversation) };
+          }
+          return next;
+        }
         next = {
           ...current,
           conversations: [
             {
               id: makeId("CHAT"),
               name: cleanTitle,
-              type: type as "Channel" | "Group" | "Direct",
-              members: people.split(",").map(value => value.trim()).filter(Boolean),
+              type: "Direct",
+              members: [current.profile.email, people],
               unread: 0,
               messages: details ? [{ id: makeId("MSG"), author: current.profile.name, initials: initials(current.profile.name), text: details, time: "Now", mine: true }] : [],
             },
@@ -597,7 +624,7 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
       }
       if (kind === "task") next = { ...current, tasks: [{ id: makeId("TASK"), title: cleanTitle, owner: people || current.profile.name, due: date, status: "To do", source: details || "Quick create", priority: type }, ...current.tasks] };
       if (kind === "leave") next = { ...current, leave: [{ id: makeId("LEAVE"), employee: current.profile.name, type, dates: `${date} to ${endDate}`, days: Math.max(1, Number(amount) || 1), status: draft ? "Draft" : "Pending" }, ...current.leave] };
-      return { ...next, audit: [{ id: makeId("AUD"), actor: current.profile.name, action: `Created ${kind}: ${cleanTitle}`, area: kind, time: "Just now" }, ...next.audit] };
+      return { ...next, audit: [{ id: makeId("AUD"), actor: current.profile.name, action: `Created ${kind}: ${cleanTitle}`, area: kind, time: formatDateTime() }, ...next.audit] };
     });
     notify(draft ? "Draft saved" : `${labels[kind]?.[0] || "Item"} created`);
     close();
@@ -607,18 +634,66 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
     <Modal title={labels[kind]?.[0] || "Create item"} eyebrow={labels[kind]?.[1]} close={close} className="medium-modal">
       <button className="back-button" onClick={back}>← All create options</button>
       <form className="create-form" onSubmit={submit}>
-        <label>
-          {kind === "conversation" ? "Conversation name" : "Title"}
-          <input data-initial-focus required value={title} onChange={event => setTitle(event.target.value)} placeholder="Enter a clear title" />
-        </label>
-        {(kind === "request" || kind === "conversation" || kind === "leave" || kind === "task") && (
+        {kind === "conversation" ? (
+          <div className="employee-message-picker">
+            <label>
+              Who would you like to message?
+              <input
+                data-initial-focus
+                type="search"
+                value={employeeQuery}
+                onChange={event => {
+                  setEmployeeQuery(event.target.value);
+                  setPeople("");
+                }}
+                placeholder="Type a name, email, role or department"
+                autoComplete="off"
+              />
+            </label>
+            {!!matchingEmployees.length && (
+              <div className="employee-search-results" aria-label="Employee results">
+                {matchingEmployees.map(employee => (
+                  <button
+                    key={employee.id}
+                    type="button"
+                    className={people === employee.email ? "selected" : ""}
+                    aria-pressed={people === employee.email}
+                    onClick={() => {
+                      setPeople(employee.email);
+                      setEmployeeQuery(employee.name);
+                    }}
+                  >
+                    <i aria-hidden="true">{initials(employee.name)}</i>
+                    <span>
+                      <b>{employee.name}</b>
+                      <small>{employee.jobTitle || employee.department || employee.email}</small>
+                    </span>
+                    <em>{people === employee.email ? "Selected" : "Message"}</em>
+                  </button>
+                ))}
+              </div>
+            )}
+            <small className="employee-search-status" role="status" aria-live="polite">
+              {matchingEmployees.length
+                ? `${matchingEmployees.length} ${matchingEmployees.length === 1 ? "employee" : "employees"} found.`
+                : employeeQuery.trim()
+                  ? "No employees match your search."
+                  : "No other employees have signed in yet."}
+            </small>
+            <small>Tap a colleague to select them. Only active employees who have signed in are shown.</small>
+          </div>
+        ) : (
+          <label>
+            Title
+            <input data-initial-focus required value={title} onChange={event => setTitle(event.target.value)} placeholder="Enter a clear title" />
+          </label>
+        )}
+        {(kind === "request" || kind === "leave" || kind === "task") && (
           <label>
             {kind === "task" ? "Priority" : "Type"}
             <select value={type} onChange={event => setType(event.target.value)}>
               {(kind === "request"
                 ? ["Purchase order", "Expense", "IT access", "Marketing support", "Facilities"]
-                : kind === "conversation"
-                ? ["Channel", "Group", "Direct"]
                 : kind === "leave"
                 ? ["Annual leave", "Sickness", "Work from home", "Unpaid leave"]
                 : ["Normal", "High", "Urgent"]
@@ -649,9 +724,9 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
             <input inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} placeholder={kind === "leave" ? "1" : "0.00"} />
           </label>
         )}
-        {(kind === "event" || kind === "conversation" || kind === "task") && (
+        {(kind === "event" || kind === "task") && (
           <label>
-            {kind === "task" ? "Assign to" : kind === "conversation" ? "Add people" : "Guests"}
+            {kind === "task" ? "Assign to" : "Guests"}
             <input value={people} onChange={event => setPeople(event.target.value)} placeholder="Names or @takeme.taxi addresses, separated by commas" />
           </label>
         )}
@@ -671,7 +746,7 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
         )}
         <div className="modal-actions">
           <button type="button" className="secondary" onClick={close}>Cancel</button>
-          <button type="submit" className="primary">{draft ? "Save draft" : `Create ${kind}`}</button>
+          <button type="submit" className="primary" disabled={kind === "conversation" && !people}>{draft ? "Save draft" : kind === "conversation" ? "Start chat" : `Create ${kind}`}</button>
         </div>
       </form>
     </Modal>
@@ -725,12 +800,14 @@ function ProfileSettings({ state, updateState, close, notify, installPrompt, set
   const [jobTitle, setJobTitle] = useState(state.profile.jobTitle);
   const [phone, setPhone] = useState(state.profile.phone);
   const [timezone, setTimezone] = useState(state.profile.timezone);
+  const [preferences, setPreferences] = useState(state.preferences);
 
   const save = (event: React.FormEvent) => {
     event.preventDefault();
     updateState(current => ({
       ...current,
       profile: { ...current.profile, name: name.trim() || current.profile.name, jobTitle: jobTitle.trim(), phone: phone.trim(), timezone },
+      preferences,
     }));
     notify("Profile preferences saved");
     close();
@@ -779,19 +856,19 @@ function ProfileSettings({ state, updateState, close, notify, installPrompt, set
         <section className="pref-section">
           <h3>Display & accessibility</h3>
           <div className="pref-grid">
-            <Toggle title="Dark mode" description="Sleek dark interface for lower eye strain" checked={state.preferences.theme === "dark"} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, theme: value ? "dark" : "light" } }))} />
-            <Toggle title="Large text" description="Increase interface font sizing" checked={state.preferences.textSize === "large"} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, textSize: value ? "large" : "normal" } }))} />
-            <Toggle title="High contrast" description="Sharpen borders and boost text contrast" checked={state.preferences.highContrast} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, highContrast: value } }))} />
-            <Toggle title="Reduced motion" description="Minimize interface animations" checked={state.preferences.reducedMotion} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, reducedMotion: value } }))} />
+            <Toggle title="Dark mode" description="Sleek dark interface for lower eye strain" checked={preferences.theme === "dark"} onChange={value => setPreferences(current => ({ ...current, theme: value ? "dark" : "light" }))} />
+            <Toggle title="Large text" description="Increase interface font sizing" checked={preferences.textSize === "large"} onChange={value => setPreferences(current => ({ ...current, textSize: value ? "large" : "normal" }))} />
+            <Toggle title="High contrast" description="Sharpen borders and boost text contrast" checked={preferences.highContrast} onChange={value => setPreferences(current => ({ ...current, highContrast: value }))} />
+            <Toggle title="Reduced motion" description="Minimize interface animations" checked={preferences.reducedMotion} onChange={value => setPreferences(current => ({ ...current, reducedMotion: value }))} />
           </div>
         </section>
 
         <section className="pref-section">
           <h3>Notifications</h3>
           <div className="pref-grid">
-            <Toggle title="Email notifications" description="Receive email summaries of approvals" checked={state.preferences.emailNotifications} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, emailNotifications: value } }))} />
-            <Toggle title="Browser alerts" description="Show notifications for urgent updates" checked={state.preferences.browserNotifications} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, browserNotifications: value } }))} />
-            <Toggle title="Weekly digest" description="Weekly recap of announcements and team highlights" checked={state.preferences.weeklyDigest} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, weeklyDigest: value } }))} />
+            <Toggle title="Email notifications" description="Receive email summaries of approvals" checked={preferences.emailNotifications} onChange={value => setPreferences(current => ({ ...current, emailNotifications: value }))} />
+            <Toggle title="Browser alerts" description="Show notifications for urgent updates" checked={preferences.browserNotifications} onChange={value => setPreferences(current => ({ ...current, browserNotifications: value }))} />
+            <Toggle title="Weekly digest" description="Weekly recap of announcements and team highlights" checked={preferences.weeklyDigest} onChange={value => setPreferences(current => ({ ...current, weeklyDigest: value }))} />
           </div>
         </section>
 

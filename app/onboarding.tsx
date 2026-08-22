@@ -14,7 +14,7 @@ const tourSteps = [
     points: [
       ["Start from Home", "My Day shows meetings, tasks, approvals, company news and updates."],
       ["Use the left menu", "Every employee tool is grouped in one consistent navigation."],
-      ["Search from anywhere", "Choose the search bar or press Ctrl K to find pages, people, documents and commands."],
+      ["Search from anywhere", "Choose the search bar to find pages, people, documents and commands."],
       ["Use it on your phone", "The bottom bar keeps Home, Projects, Create and Chat within easy reach."]
     ],
     tip: "Your profile, theme, accessibility and notification choices are personal and saved to your account.",
@@ -84,7 +84,7 @@ const tourSteps = [
     intro: "The portal is the quickest route to colleagues, answers and controlled company files.",
     points: [
       ["People", "Find colleagues by name, team, location or skills, then email or start a chat."],
-      ["Chat", "Use company channels, team groups or direct conversations."],
+      ["Chat", "Search and message colleagues who have signed in."],
       ["Knowledge", "Read policies, guides and company news; acknowledge policies when requested."],
       ["Documents", "Browse portal files and Google Drive without leaving the employee workspace."]
     ],
@@ -181,7 +181,7 @@ export function OnboardingGuide({ state, updateState, close, navigate, notify }:
 }
 
 const helpTopics = [
-  { category: "Start", icon: "home", title: "Home and navigation", summary: "Understand My Day, the menu, mobile bar and saved home cards.", page: "Home", steps: ["Open Home to see current meetings, tasks, decisions and company updates.", "Choose Customise home to show, hide or reorder your personal cards.", "Use the left menu on a computer or More on a phone for every portal area.", "Use the top search or Ctrl K to find a page, record or quick command."] },
+  { category: "Start", icon: "home", title: "Home and navigation", summary: "Understand My Day, the menu, mobile bar and saved home cards.", page: "Home", steps: ["Open Home to see current meetings, tasks, decisions and company updates.", "Choose Customise home to show, hide or reorder your personal cards.", "Use the left menu on a computer or More on a phone for every portal area.", "Use the top search to find a page, record or quick command."] },
   { category: "Start", icon: "plus", title: "Quick create and notifications", summary: "Start work and respond to updates from anywhere.", page: "Home", steps: ["Choose Create in the top bar or phone navigation.", "Select the item you need and complete the required fields.", "Open the notification bell to read grouped updates.", "Snooze an item or select it to open the relevant record."] },
   { category: "Work", icon: "projects", title: "Projects, boards and cards", summary: "Plan projects, collaborate on cards and report delivery.", page: "Projects", steps: ["Open Projects and select an existing board or an approved template.", "Create lists for your process and add cards for deliverable work.", "Assign members, labels, dates, priorities, checklists, files and comments.", "Drag cards between lists or change the List field on mobile.", "Use Calendar, Timeline and Dashboard for deadlines and reporting.", "Open Automation to configure repeatable card actions."] },
   { category: "Work", icon: "tasks", title: "Tasks and follow-ups", summary: "Organise personal and shared actions.", page: "Tasks", steps: ["Open Tasks or choose Task from Quick create.", "Add a clear title, owner, due date and priority.", "Move work between To do, In progress, Waiting and Done.", "Review due work from the Home task card."] },
@@ -189,7 +189,7 @@ const helpTopics = [
   { category: "Google", icon: "calendar", title: "Google Calendar and Meet", summary: "Connect, create, edit and cancel company events.", page: "Calendar", steps: ["Open Calendar and choose Connect Google Calendar if needed.", "Sign in with the same @takeme.taxi account used for the portal.", "Choose Create event, add guests and enable Google Meet when required.", "Select a synced event to edit, cancel or open it in Google.", "Project card deadlines can also create Google Calendar events."] },
   { category: "Google", icon: "documents", title: "Google Drive and documents", summary: "Find company files and connect them to work.", page: "Documents", steps: ["Open Documents and connect your Google account if required.", "Choose Browse Google Drive to load company files.", "Open a file in Google or use its Drive link on a project card.", "Use portal upload only for files that should be stored directly in the portal."] },
   { category: "People", icon: "people", title: "People directory", summary: "Find a colleague, skill, team or contact route.", page: "People", steps: ["Search by name, department, location or useful skill.", "Open a profile to review contact and team information.", "Choose Email or Chat to contact the colleague.", "Keep your own job, department and phone details current under Profile."] },
-  { category: "People", icon: "chat", title: "Chat and conversations", summary: "Use channels, groups and direct conversations.", page: "Chat", steps: ["Open Chat and select a company channel or conversation.", "Choose New conversation to start a channel, group or direct chat.", "Add only the colleagues who need the conversation.", "Use clear channel names and keep sensitive records in approved systems."] },
+  { category: "People", icon: "chat", title: "Chat and conversations", summary: "Use private direct messages with verified colleagues.", page: "Chat", steps: ["Open Chat and select a colleague.", "Choose New message to start a direct conversation.", "Search messages, share approved files and create follow-up tasks.", "Keep sensitive records in approved systems."] },
   { category: "Information", icon: "knowledge", title: "Knowledge and policies", summary: "Find trusted guidance, news and required reading.", page: "Knowledge", steps: ["Search Knowledge by title, category or subject.", "Open an article to read the current owner and review date.", "Complete policy acknowledgement when requested.", "Mark useful guidance as Helpful and contact the owner for corrections."] },
   { category: "Work life", icon: "leave", title: "Leave and time off", summary: "Manage annual leave, track balances and absence records.", page: "Leave", steps: ["Review your current holiday balance.", "Create a leave request with accurate dates and type.", "Follow the status and manager decision from the same page."] },
   { category: "Account", icon: "settings", title: "Profile, accessibility and mobile app", summary: "Personalise the portal and install it on a phone.", page: "Home", steps: ["Choose your name in the menu to open Profile and preferences.", "Update work details and select your time zone.", "Choose dark mode, larger text, high contrast or reduced motion.", "Set notification preferences and connect Google services.", "Choose Install portal or add it from your phone browser menu."] },

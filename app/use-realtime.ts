@@ -7,6 +7,8 @@ export type RealtimeEvent = {
   type: string;
   actor?: { id: string; name: string };
   conversationId?: string;
+  messageId?: string;
+  status?: "delivered" | "read";
   active?: boolean;
   area?: string;
   resourceId?: string;
@@ -21,6 +23,7 @@ export type RealtimeControls = {
   configured: boolean;
   onlineUsers: Array<{ id: string; name: string }>;
   latestEvent: RealtimeEvent | null;
+  events: RealtimeEvent[];
   send: (event: Record<string, unknown>) => boolean;
 };
 
@@ -28,6 +31,7 @@ export function useRealtime(enabled: boolean, onStateChanged: () => void): Realt
   const [status, setStatus] = useState<RealtimeStatus>(enabled ? "connecting" : "disabled");
   const [configured, setConfigured] = useState(false);
   const [latestEvent, setLatestEvent] = useState<RealtimeEvent | null>(null);
+  const [events, setEvents] = useState<RealtimeEvent[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<Array<{ id: string; name: string }>>([]);
   const socket = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<number | null>(null);
@@ -84,7 +88,9 @@ export function useRealtime(enabled: boolean, onStateChanged: () => void): Realt
             if (!event || typeof event.type !== "string") return;
             if (event.type === "state.changed") stateChanged.current();
             if (event.type === "presence.snapshot" && Array.isArray(event.users)) setOnlineUsers(event.users);
-            setLatestEvent({ ...event, eventId: crypto.randomUUID() });
+            const received = { ...event, eventId: crypto.randomUUID() };
+            setLatestEvent(received);
+            setEvents(current => [...current.slice(-49), received]);
           } catch { /* ignore malformed gateway messages */ }
         };
         nextSocket.onerror = () => nextSocket.close();
@@ -132,5 +138,5 @@ export function useRealtime(enabled: boolean, onStateChanged: () => void): Realt
     return true;
   }, []);
 
-  return { status: enabled ? status : "disabled", configured: enabled && configured, onlineUsers: enabled ? onlineUsers : [], latestEvent: enabled ? latestEvent : null, send };
+  return { status: enabled ? status : "disabled", configured: enabled && configured, onlineUsers: enabled ? onlineUsers : [], latestEvent: enabled ? latestEvent : null, events: enabled ? events : [], send };
 }

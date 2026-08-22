@@ -30,7 +30,7 @@ yarn-error.log*
 .portal-dev*.log
 
 # env files (can opt-in for committing if needed)
-.env*
+/.env.local
 !.env.example
 
 # vercel
@@ -41,3 +41,5 @@ yarn-error.log*
 /outputs/
 /work/
 /.portal-data/
+
+.env*

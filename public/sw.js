@@ -1,4 +1,4 @@
-const CACHE = "take-me-portal-v3";
+const CACHE = "take-me-portal-v4";
 const SHELL = [
   "/",
   "/offline.html",
@@ -31,7 +31,10 @@ self.addEventListener("fetch", event => {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          if (response.ok) caches.open(CACHE).then(cache => cache.put("/", response.clone()));
+          if (response.ok) {
+            const cacheCopy = response.clone();
+            caches.open(CACHE).then(cache => cache.put("/", cacheCopy));
+          }
           return response;
         })
         .catch(() => caches.match("/").then(response => response || caches.match("/offline.html")))
@@ -42,7 +45,10 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     caches.match(event.request).then(cached => {
       const network = fetch(event.request).then(response => {
-        if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, response.clone()));
+        if (response.ok) {
+          const cacheCopy = response.clone();
+          caches.open(CACHE).then(cache => cache.put(event.request, cacheCopy));
+        }
         return response;
       });
       return cached || network;

@@ -1,5 +1,18 @@
 export type Tone = "blue" | "green" | "amber" | "red" | "slate";
 
+export const addDays = (value: Date, days: number) => {
+  const next = new Date(value);
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
+export const localDateInput = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+export const startOfWeek = (value: Date) => addDays(new Date(value.getFullYear(), value.getMonth(), value.getDate(), 12), -((value.getDay() + 6) % 7));
+export const formatDate = (value: Date) => value.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+export const formatDateTime = (value = new Date()) => value.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const sampleDate = (days: number) => localDateInput(addDays(new Date(), days));
+const sampleDisplayDate = (days: number) => formatDate(addDays(new Date(), days));
+
 export type Profile = {
   name: string;
   jobTitle: string;
@@ -39,8 +52,28 @@ export type RequestItem = {
 export type Approval = { id: string; requestId: string; title: string; requester: string; due: string; amount: string; status: string; type: string };
 export type TaskItem = { id: string; title: string; owner: string; due: string; status: "To do" | "In progress" | "Done" | "Waiting"; source: string; priority: string };
 export type EventItem = { id: string; title: string; date: string; start: string; end: string; location: string; meet: boolean; guests: string[]; notes: string; googleId?: string; webLink?: string };
-export type ChatMessage = { id: string; author: string; initials: string; text: string; time: string; mine?: boolean };
-export type Conversation = { id: string; name: string; type: "Channel" | "Group" | "Direct"; members: string[]; messages: ChatMessage[]; unread: number };
+export type ChatAttachment = { key: string; name: string; type: string; size: number };
+export type ChatReaction = { emoji: string; users: string[] };
+export type ChatMessage = {
+  id: string;
+  author: string;
+  authorId?: string;
+  authorEmail?: string;
+  initials: string;
+  text: string;
+  time: string;
+  mine?: boolean;
+  status?: "sending" | "sent" | "delivered" | "read" | "failed";
+  editedAt?: string;
+  deletedAt?: string;
+  replyTo?: string;
+  attachments?: ChatAttachment[];
+  reactions?: ChatReaction[];
+  pinned?: boolean;
+  savedBy?: string[];
+  mentions?: string[];
+};
+export type Conversation = { id: string; name: string; type: "Direct"; members: string[]; messages: ChatMessage[]; unread: number; unreadBy?: string[] };
 export type DocumentItem = { id: string; name: string; type: string; owner: string; updated: string; folder: string; size: string; key?: string; drive?: boolean };
 export type Article = { id: string; title: string; category: string; summary: string; owner: string; reviewed: string; acknowledgement?: boolean; helpful?: number };
 export type LeaveItem = { id: string; employee: string; type: string; dates: string; days: number; status: string };
@@ -52,6 +85,23 @@ export type Handover = { id: string; shift: string; author: string; note: string
 export type ServiceStatus = { id: string; name: string; status: "Operational" | "Degraded" | "Maintenance"; note: string; updated: string };
 export type NotificationItem = { id: string; title: string; detail: string; group: string; time: string; read: boolean; snoozed?: boolean };
 export type AuditItem = { id: string; actor: string; action: string; area: string; time: string };
+export type Employee = {
+  id: string;
+  googleId: string;
+  email: string;
+  name: string;
+  givenName: string;
+  familyName: string;
+  photoUrl: string;
+  locale: string;
+  jobTitle: string;
+  department: string;
+  phone: string;
+  location: string;
+  status: "Active" | "Suspended";
+  joinedAt: string;
+  lastLoginAt: string;
+};
 
 export type ProjectMember = { id: string; name: string; initials: string; email: string; color: string };
 export type ProjectLabel = { id: string; name: string; color: string };
@@ -124,10 +174,12 @@ export type AdminSettings = {
 };
 
 export type PortalState = {
+  dataMode: "sample" | "operational";
   profile: Profile;
   preferences: Preferences;
   features: FeatureFlags;
   adminSettings: AdminSettings;
+  employees: Employee[];
   requests: RequestItem[];
   approvals: Approval[];
   tasks: TaskItem[];
@@ -151,7 +203,7 @@ export type PortalState = {
 };
 
 const timeline = (submitted: string, approver: string): TimelineItem[] => [
-  { label: "Submitted", person: submitted, time: "13 Aug · 09:12", complete: true },
+  { label: "Submitted", person: submitted, time: formatDateTime(addDays(new Date(), -1)), complete: true },
   { label: "Manager review", person: approver, time: "Waiting", complete: false },
   { label: "Final confirmation", person: "Portal workflow", time: "Waiting", complete: false },
 ];
@@ -164,7 +216,7 @@ export const featureLabels: Record<FeatureKey, [string, string]> = {
   calendar: ["Team calendar", "Company events and availability"],
   knowledge: ["Knowledge base", "Policies, news and acknowledgements"],
   documents: ["Documents", "Portal uploads and company files"],
-  chat: ["Chat and channels", "Channels, groups and direct messages"],
+  chat: ["Direct messages", "Private conversations between employees"],
   leave: ["Leave management", "Holiday, sickness and WFH requests"],
   googleCalendar: ["Google Calendar and Meet", "Create and manage Google events"],
   googleDrive: ["Google Drive and Docs", "Browse, attach and create company files"],
@@ -178,7 +230,8 @@ export const featureLabels: Record<FeatureKey, [string, string]> = {
   projects: ["Boards and projects", "Visual planning, delivery tracking and team collaboration"],
 };
 
-export const defaultPortalState: PortalState = {
+const legacySamplePortalState: PortalState = {
+  dataMode: "sample",
   profile: { name: "Muneeb Rizwan", jobTitle: "Product & Operations", email: "muneeb.rizwan@takeme.taxi", phone: "", timezone: "Europe/London", department: "Operations" },
   preferences: {
     theme: "light", textSize: "normal", highContrast: false, reducedMotion: false,
@@ -196,49 +249,42 @@ export const defaultPortalState: PortalState = {
     projectDefaultVisibility: "Workspace", realtimeEnabled: true, realtimeTyping: true, realtimePresence: true,
     realtimePollingSeconds: "3",
   },
+  employees: [],
   requests: [
-    { id: "PO-2026-041", title: "New design laptops", type: "Purchase order", amount: "£8,450", status: "Awaiting approval", tone: "amber", requester: "Daniel Cole", created: "13 Aug 2026", details: "Four laptops for the design and marketing team.", priority: "High", timeline: timeline("Daniel Cole", "Muneeb Rizwan") },
-    { id: "MKT-2026-118", title: "Q4 customer campaign", type: "Marketing request", amount: "—", status: "In progress", tone: "blue", requester: "Sofia Khan", created: "12 Aug 2026", details: "Campaign support for the Q4 passenger promotion.", priority: "Normal", timeline: timeline("Sofia Khan", "Daniel Cole") },
-    { id: "IT-2026-327", title: "Figma access for Sam", type: "IT access", amount: "—", status: "Completed", tone: "green", requester: "Sam Wilson", created: "11 Aug 2026", details: "Editor access required for team templates.", priority: "Normal", timeline: timeline("Sam Wilson", "IT Support").map(item => ({ ...item, complete: true, time: "Completed" })) },
-    { id: "HR-2026-204", title: "Annual leave · 24–28 August", type: "Leave request", amount: "—", status: "Approved", tone: "green", requester: "Muneeb Rizwan", created: "10 Aug 2026", details: "Five days annual leave.", priority: "Normal", timeline: timeline("Muneeb Rizwan", "Sofia Khan").map(item => ({ ...item, complete: true, time: "Approved" })) },
+    { id: "PO-SAMPLE-041", title: "New design laptops", type: "Purchase order", amount: "£8,450", status: "Awaiting approval", tone: "amber", requester: "Daniel Cole", created: sampleDisplayDate(-1), details: "Four laptops for the design and marketing team.", priority: "High", timeline: timeline("Daniel Cole", "Muneeb Rizwan") },
+    { id: "MKT-SAMPLE-118", title: "Q4 customer campaign", type: "Marketing request", amount: "—", status: "In progress", tone: "blue", requester: "Sofia Khan", created: sampleDisplayDate(-2), details: "Campaign support for the Q4 passenger promotion.", priority: "Normal", timeline: timeline("Sofia Khan", "Daniel Cole") },
+    { id: "IT-SAMPLE-327", title: "Figma access for Sam", type: "IT access", amount: "—", status: "Completed", tone: "green", requester: "Sam Wilson", created: sampleDisplayDate(-3), details: "Editor access required for team templates.", priority: "Normal", timeline: timeline("Sam Wilson", "IT Support").map(item => ({ ...item, complete: true, time: "Completed" })) },
+    { id: "HR-SAMPLE-204", title: "Annual leave example", type: "Leave request", amount: "—", status: "Approved", tone: "green", requester: "Muneeb Rizwan", created: sampleDisplayDate(-4), details: "Five days annual leave.", priority: "Normal", timeline: timeline("Muneeb Rizwan", "Sofia Khan").map(item => ({ ...item, complete: true, time: "Approved" })) },
   ],
   approvals: [
-    { id: "APR-01", requestId: "PO-2026-041", title: "New design laptops", requester: "Daniel Cole", due: "Today", amount: "£8,450", status: "Pending", type: "Purchase order" },
-    { id: "APR-02", requestId: "HR-2026-219", title: "Work from home · Friday", requester: "Sam Wilson", due: "Today", amount: "—", status: "Pending", type: "People" },
-    { id: "APR-03", requestId: "MKT-2026-121", title: "Airport campaign assets", requester: "Sofia Khan", due: "Tomorrow", amount: "£1,250", status: "Pending", type: "Marketing" },
+    { id: "APR-01", requestId: "PO-SAMPLE-041", title: "New design laptops", requester: "Daniel Cole", due: formatDate(addDays(new Date(), 0)), amount: "£8,450", status: "Pending", type: "Purchase order" },
+    { id: "APR-02", requestId: "HR-SAMPLE-219", title: "Work from home request", requester: "Sam Wilson", due: formatDate(addDays(new Date(), 0)), amount: "—", status: "Pending", type: "People" },
+    { id: "APR-03", requestId: "MKT-SAMPLE-121", title: "Airport campaign assets", requester: "Sofia Khan", due: formatDate(addDays(new Date(), 1)), amount: "£1,250", status: "Pending", type: "Marketing" },
   ],
   tasks: [
-    { id: "TASK-01", title: "Review Q4 campaign brief", owner: "Muneeb Rizwan", due: "Today", status: "In progress", source: "Marketing request", priority: "High" },
-    { id: "TASK-02", title: "Confirm all-hands agenda", owner: "Muneeb Rizwan", due: "Today", status: "To do", source: "Calendar", priority: "Normal" },
+    { id: "TASK-01", title: "Review Q4 campaign brief", owner: "Muneeb Rizwan", due: formatDate(new Date()), status: "In progress", source: "Marketing request", priority: "High" },
+    { id: "TASK-02", title: "Confirm all-hands agenda", owner: "Muneeb Rizwan", due: formatDate(new Date()), status: "To do", source: "Calendar", priority: "Normal" },
     { id: "TASK-03", title: "Prepare quarterly review notes", owner: "Sam Wilson", due: "14 Aug", status: "Waiting", source: "Projects", priority: "High" },
     { id: "TASK-04", title: "Read Expenses Policy v3", owner: "Muneeb Rizwan", due: "16 Aug", status: "To do", source: "Knowledge", priority: "Normal" },
   ],
   events: [
-    { id: "EV-01", title: "Quarterly all-hands", date: "2026-08-13", start: "15:00", end: "16:00", location: "Google Meet", meet: true, guests: ["all@takeme.taxi"], notes: "Company results and Q4 priorities." },
-    { id: "EV-02", title: "Marketing sync", date: "2026-08-14", start: "10:30", end: "11:00", location: "Room Cedar", meet: false, guests: ["marketing@takeme.taxi"], notes: "Weekly campaign review." },
-    { id: "EV-03", title: "Team stand-up", date: "2026-08-11", start: "09:30", end: "10:00", location: "Google Meet", meet: true, guests: ["team@takeme.taxi"], notes: "Daily project and delivery update." },
+    { id: "EV-01", title: "Quarterly all-hands", date: sampleDate(0), start: "15:00", end: "16:00", location: "Google Meet", meet: true, guests: ["all@takeme.taxi"], notes: "Company results and Q4 priorities." },
+    { id: "EV-02", title: "Marketing sync", date: sampleDate(1), start: "10:30", end: "11:00", location: "Room Cedar", meet: false, guests: ["marketing@takeme.taxi"], notes: "Weekly campaign review." },
+    { id: "EV-03", title: "Team stand-up", date: sampleDate(-2), start: "09:30", end: "10:00", location: "Google Meet", meet: true, guests: ["team@takeme.taxi"], notes: "Daily project and delivery update." },
   ],
-  conversations: [
-    { id: "CHAT-01", name: "Company announcements", type: "Channel", members: ["Everyone"], unread: 0, messages: [
-      { id: "M-01", author: "Sofia Khan", initials: "SK", text: "Today’s all-hands starts at 3:00 PM. The Google Meet link is in the calendar event.", time: "10:32" },
-      { id: "M-02", author: "Daniel Cole", initials: "DC", text: "We’ll also share the Q4 campaign preview.", time: "10:47" },
-    ] },
-    { id: "CHAT-02", name: "General", type: "Channel", members: ["Muneeb Rizwan", "Sam Wilson", "Sofia Khan"], unread: 4, messages: [{ id: "M-03", author: "Sam Wilson", initials: "SW", text: "Morning review is complete. Ready for today's release.", time: "09:18" }] },
-    { id: "CHAT-03", name: "Customer Support", type: "Channel", members: ["Support team"], unread: 2, messages: [] },
-    { id: "CHAT-04", name: "Marketing", type: "Channel", members: ["Marketing team"], unread: 0, messages: [] },
-  ],
+  conversations: [],
   documents: [
-    { id: "DOC-01", name: "Take Me brand guidelines", type: "PDF", owner: "Marketing", updated: "Today", folder: "Brand assets", size: "4.2 MB", drive: true },
-    { id: "DOC-02", name: "Employee handbook 2026", type: "Google Doc", owner: "People", updated: "Yesterday", folder: "Policies", size: "—", drive: true },
+    { id: "DOC-01", name: "Take Me brand guidelines", type: "PDF", owner: "Marketing", updated: formatDate(new Date()), folder: "Brand assets", size: "4.2 MB", drive: true },
+    { id: "DOC-02", name: "Employee handbook", type: "Google Doc", owner: "People", updated: sampleDisplayDate(-1), folder: "Policies", size: "—", drive: true },
     { id: "DOC-03", name: "PO request template", type: "Spreadsheet", owner: "Finance", updated: "8 Aug", folder: "Templates", size: "88 KB", drive: true },
     { id: "DOC-04", name: "Project delivery guide", type: "PDF", owner: "Technology", updated: "6 Aug", folder: "Guides", size: "620 KB" },
   ],
   articles: [
-    { id: "KB-01", title: "Employee handbook", category: "People", summary: "Everything you need to know about working at Take Me.", owner: "People team", reviewed: "1 Aug 2026", acknowledgement: true, helpful: 42 },
-    { id: "KB-02", title: "How to submit a purchase order", category: "Finance", summary: "Approval limits, supplier details and the complete PO process.", owner: "Finance", reviewed: "4 Aug 2026", helpful: 31 },
-    { id: "KB-03", title: "Workplace health and safety", category: "Company", summary: "Office guidelines, emergency contacts and incident protocols.", owner: "People", reviewed: "9 Aug 2026", acknowledgement: true, helpful: 29 },
-    { id: "KB-04", title: "Brand and social media guide", category: "Marketing", summary: "Logos, tone of voice and campaign approval guidance.", owner: "Marketing", reviewed: "7 Aug 2026", helpful: 18 },
-    { id: "KB-05", title: "Google Workspace basics", category: "Technology", summary: "Calendar, Drive, Meet and company account help.", owner: "IT", reviewed: "11 Aug 2026", helpful: 36 },
+    { id: "KB-01", title: "Employee handbook", category: "People", summary: "Everything you need to know about working at Take Me.", owner: "People team", reviewed: sampleDisplayDate(-30), acknowledgement: true, helpful: 42 },
+    { id: "KB-02", title: "How to submit a purchase order", category: "Finance", summary: "Approval limits, supplier details and the complete PO process.", owner: "Finance", reviewed: sampleDisplayDate(-26), helpful: 31 },
+    { id: "KB-03", title: "Workplace health and safety", category: "Company", summary: "Office guidelines, emergency contacts and incident protocols.", owner: "People", reviewed: sampleDisplayDate(-18), acknowledgement: true, helpful: 29 },
+    { id: "KB-04", title: "Brand and social media guide", category: "Marketing", summary: "Logos, tone of voice and campaign approval guidance.", owner: "Marketing", reviewed: sampleDisplayDate(-21), helpful: 18 },
+    { id: "KB-05", title: "Google Workspace basics", category: "Technology", summary: "Calendar, Drive, Meet and company account help.", owner: "IT", reviewed: sampleDisplayDate(-12), helpful: 36 },
   ],
   leave: [
     { id: "LEAVE-01", employee: "Muneeb Rizwan", type: "Annual leave", dates: "24–28 Aug", days: 5, status: "Approved" },
@@ -250,22 +296,22 @@ export const defaultPortalState: PortalState = {
   incidents: [],
   handovers: [],
   services: [
-    { id: "STATUS-01", name: "Portal Services", status: "Operational", note: "All core portal services are running normally.", updated: "2 minutes ago" },
-    { id: "STATUS-02", name: "Google Workspace", status: "Operational", note: "Calendar, Drive and Gmail are available.", updated: "10 minutes ago" },
+    { id: "STATUS-01", name: "Portal Services", status: "Operational", note: "Sample status — run the health check for live results.", updated: "Sample data" },
+    { id: "STATUS-02", name: "Google Workspace", status: "Operational", note: "Sample status — connect Google Workspace for live results.", updated: "Sample data" },
   ],
   notifications: [
-    { id: "NOT-01", title: "PO-2026-041 needs your approval", detail: "New design laptops · £8,450", group: "Approvals", time: "5 minutes ago", read: false },
+    { id: "NOT-01", title: "PO-SAMPLE-041 needs your approval", detail: "New design laptops · £8,450", group: "Approvals", time: formatDateTime(addDays(new Date(), 0)), read: false },
     { id: "NOT-02", title: "Quarterly all-hands starts at 3:00 PM", detail: "Google Meet link is ready", group: "Calendar", time: "2 hours ago", read: false },
-    { id: "NOT-04", title: "Your IT access request was completed", detail: "Figma access for Sam", group: "Requests", time: "Yesterday", read: true },
+    { id: "NOT-04", title: "Your IT access request was completed", detail: "Figma access for Sam", group: "Requests", time: sampleDisplayDate(-1), read: true },
   ],
   audit: [
-    { id: "AUD-01", actor: "Muneeb Rizwan", action: "Updated Google Workspace settings", area: "Integrations", time: "Today · 11:24" },
-    { id: "AUD-02", actor: "Sofia Khan", action: "Invited 3 employees", area: "People", time: "Today · 10:48" },
-    { id: "AUD-03", actor: "Daniel Cole", action: "Changed PO approval workflow", area: "Workflows", time: "Today · 09:16" },
+    { id: "AUD-01", actor: "Muneeb Rizwan", action: "Updated Google Workspace settings", area: "Integrations", time: formatDateTime(addDays(new Date(), -1)) },
+    { id: "AUD-02", actor: "Sofia Khan", action: "Invited 3 employees", area: "People", time: formatDateTime(addDays(new Date(), -2)) },
+    { id: "AUD-03", actor: "Daniel Cole", action: "Changed PO approval workflow", area: "Workflows", time: formatDateTime(addDays(new Date(), -3)) },
   ],
   projectBoards: [
     {
-      id: "BOARD-LAUNCH", title: "Mobile app launch", description: "Plan and deliver the Take Me employee app launch across teams.", visibility: "Workspace", starred: true, background: "ocean", createdAt: "1 Aug 2026", updatedAt: "Today",
+      id: "BOARD-LAUNCH", title: "Mobile app launch", description: "Plan and deliver the Take Me employee app launch across teams.", visibility: "Workspace", starred: true, background: "ocean", createdAt: sampleDisplayDate(-30), updatedAt: sampleDisplayDate(0),
       calendarSync: true, driveFolder: "Take Me / Mobile app launch", archived: false,
       members: [
         { id: "MEM-MR", name: "Muneeb Rizwan", initials: "MR", email: "muneeb.rizwan@takeme.taxi", color: "#007eae" },
@@ -287,18 +333,18 @@ export const defaultPortalState: PortalState = {
         { id: "LIST-DONE", title: "Done", order: 4, color: "#168a58", limit: 0 },
       ],
       cards: [
-        { id: "CARD-101", title: "Employee mobile navigation", description: "Create one-handed navigation for the most-used employee actions and verify safe areas on Android and iPhone.", listId: "LIST-DONE", order: 0, members: ["MEM-MR", "MEM-SW"], labels: ["LBL-DESIGN", "LBL-TECH"], startDate: "2026-08-05", dueDate: "2026-08-10", dueComplete: true, priority: "High", estimate: "8h", cover: "#007eae", watching: true, archived: false, createdBy: "Muneeb Rizwan", createdAt: "5 Aug 2026", customFields: { Team: "Product", Sprint: "Launch 1", Risk: "Low" },
+        { id: "CARD-101", title: "Employee mobile navigation", description: "Create one-handed navigation for the most-used employee actions and verify safe areas on Android and iPhone.", listId: "LIST-DONE", order: 0, members: ["MEM-MR", "MEM-SW"], labels: ["LBL-DESIGN", "LBL-TECH"], startDate: sampleDate(-9), dueDate: sampleDate(-4), dueComplete: true, priority: "High", estimate: "8h", cover: "#007eae", watching: true, archived: false, createdBy: "Muneeb Rizwan", createdAt: sampleDisplayDate(-9), customFields: { Team: "Product", Sprint: "Launch 1", Risk: "Low" },
           checklists: [{ id: "CHK-101", title: "Acceptance criteria", items: [{ id: "CI-101", text: "Bottom navigation", complete: true }, { id: "CI-102", text: "Safe-area handling", complete: true }, { id: "CI-103", text: "Phone-size QA", complete: true }] }],
           attachments: [{ id: "ATT-101", name: "Mobile navigation brief", url: "https://drive.google.com/", source: "Google Drive", addedBy: "Muneeb Rizwan", addedAt: "6 Aug" }],
-          comments: [{ id: "COM-101", author: "Sam Wilson", initials: "SW", text: "Tested the primary actions. The layout is fast to use.", createdAt: "10 Aug · 14:20", reactions: ["👍 3"] }],
-          activity: [{ id: "ACT-101", actor: "Muneeb Rizwan", action: "moved this card to Done", time: "10 Aug · 15:10" }] },
-        { id: "CARD-102", title: "Google Calendar event sync", description: "Connect card due dates to company calendars and support Meet links for project milestones.", listId: "LIST-DOING", order: 0, members: ["MEM-MR"], labels: ["LBL-TECH"], startDate: "2026-08-12", dueDate: "2026-08-18", dueComplete: false, priority: "Urgent", estimate: "12h", cover: "#0f9d58", watching: true, archived: false, createdBy: "Muneeb Rizwan", createdAt: "8 Aug 2026", customFields: { Team: "Engineering", Sprint: "Launch 1", Risk: "Medium" },
-          checklists: [{ id: "CHK-102", title: "Integration", items: [{ id: "CI-104", text: "OAuth configuration", complete: true }, { id: "CI-105", text: "Create and edit events", complete: true }, { id: "CI-106", text: "Production account test", complete: false, assignee: "MEM-MR", dueDate: "2026-08-18" }] }], attachments: [], comments: [], activity: [{ id: "ACT-102", actor: "Muneeb Rizwan", action: "started work", time: "12 Aug · 09:00" }] },
-        { id: "CARD-103", title: "App-store rollout guide", description: "Prepare employee installation instructions, screenshots and support notes.", listId: "LIST-READY", order: 0, members: ["MEM-SK", "MEM-DC"], labels: ["LBL-MKT"], startDate: "2026-08-17", dueDate: "2026-08-21", dueComplete: false, priority: "Normal", estimate: "5h", cover: "#d76b16", watching: false, archived: false, createdBy: "Sofia Khan", createdAt: "11 Aug 2026", customFields: { Team: "Marketing", Sprint: "Launch 2", Risk: "Low" }, checklists: [], attachments: [], comments: [], activity: [] },
-        { id: "CARD-105", title: "Fix profile menu on phones", description: "Ensure the mobile profile and preferences button stays above app navigation.", listId: "LIST-REVIEW", order: 0, members: ["MEM-MR"], labels: ["LBL-DESIGN", "LBL-BLOCK"], startDate: "2026-08-13", dueDate: "2026-08-14", dueComplete: false, priority: "Urgent", estimate: "2h", cover: "#bd3038", watching: true, archived: false, createdBy: "Muneeb Rizwan", createdAt: "13 Aug 2026", customFields: { Team: "Product", Sprint: "Launch 1", Risk: "High" }, checklists: [], attachments: [], comments: [{ id: "COM-105", author: "Muneeb Rizwan", initials: "MR", text: "Confirmed on a 390px phone viewport. Ready for the final fix.", createdAt: "Today · 11:30" }], activity: [] },
+          comments: [{ id: "COM-101", author: "Sam Wilson", initials: "SW", text: "Tested the primary actions. The layout is fast to use.", createdAt: formatDateTime(addDays(new Date(), -4)), reactions: ["👍 3"] }],
+          activity: [{ id: "ACT-101", actor: "Muneeb Rizwan", action: "moved this card to Done", time: formatDateTime(addDays(new Date(), -4)) }] },
+        { id: "CARD-102", title: "Google Calendar event sync", description: "Connect card due dates to company calendars and support Meet links for project milestones.", listId: "LIST-DOING", order: 0, members: ["MEM-MR"], labels: ["LBL-TECH"], startDate: sampleDate(-2), dueDate: sampleDate(4), dueComplete: false, priority: "Urgent", estimate: "12h", cover: "#0f9d58", watching: true, archived: false, createdBy: "Muneeb Rizwan", createdAt: sampleDisplayDate(-6), customFields: { Team: "Engineering", Sprint: "Launch 1", Risk: "Medium" },
+          checklists: [{ id: "CHK-102", title: "Integration", items: [{ id: "CI-104", text: "OAuth configuration", complete: true }, { id: "CI-105", text: "Create and edit events", complete: true }, { id: "CI-106", text: "Production account test", complete: false, assignee: "MEM-MR", dueDate: sampleDate(4) }] }], attachments: [], comments: [], activity: [{ id: "ACT-102", actor: "Muneeb Rizwan", action: "started work", time: formatDateTime(addDays(new Date(), -2)) }] },
+        { id: "CARD-103", title: "App-store rollout guide", description: "Prepare employee installation instructions, screenshots and support notes.", listId: "LIST-READY", order: 0, members: ["MEM-SK", "MEM-DC"], labels: ["LBL-MKT"], startDate: sampleDate(3), dueDate: sampleDate(7), dueComplete: false, priority: "Normal", estimate: "5h", cover: "#d76b16", watching: false, archived: false, createdBy: "Sofia Khan", createdAt: sampleDisplayDate(-3), customFields: { Team: "Marketing", Sprint: "Launch 2", Risk: "Low" }, checklists: [], attachments: [], comments: [], activity: [] },
+        { id: "CARD-105", title: "Fix profile menu on phones", description: "Ensure the mobile profile and preferences button stays above app navigation.", listId: "LIST-REVIEW", order: 0, members: ["MEM-MR"], labels: ["LBL-DESIGN", "LBL-BLOCK"], startDate: sampleDate(-1), dueDate: sampleDate(0), dueComplete: false, priority: "Urgent", estimate: "2h", cover: "#bd3038", watching: true, archived: false, createdBy: "Muneeb Rizwan", createdAt: sampleDisplayDate(-1), customFields: { Team: "Product", Sprint: "Launch 1", Risk: "High" }, checklists: [], attachments: [], comments: [{ id: "COM-105", author: "Muneeb Rizwan", initials: "MR", text: "Confirmed on a 390px phone viewport. Ready for the final fix.", createdAt: formatDateTime() }], activity: [] },
       ],
     },
-    { id: "BOARD-MKT", title: "Q4 marketing campaign", description: "Campaign planning, content production and launch approvals.", visibility: "Workspace", starred: false, background: "sunset", createdAt: "28 Jul 2026", updatedAt: "3 days ago", calendarSync: true, driveFolder: "Take Me / Marketing / Q4", archived: false, members: [{ id: "MEM-SK", name: "Sofia Khan", initials: "SK", email: "sofia.khan@takeme.taxi", color: "#7c4dff" }, { id: "MEM-DC", name: "Daniel Cole", initials: "DC", email: "daniel.cole@takeme.taxi", color: "#d76b16" }], labels: [{ id: "LBL-COPY", name: "Copy", color: "#007eae" }, { id: "LBL-DESIGN", name: "Design", color: "#7c4dff" }], lists: [{ id: "LIST-BRIEF", title: "Briefs", order: 0, color: "#75838a", limit: 0 }, { id: "LIST-PRODUCTION", title: "Production", order: 1, color: "#d76b16", limit: 6 }, { id: "LIST-APPROVAL", title: "Approval", order: 2, color: "#7c4dff", limit: 3 }, { id: "LIST-LIVE", title: "Live", order: 3, color: "#168a58", limit: 0 }], cards: [{ id: "CARD-301", title: "Passenger app launch story", description: "Customer story for the Q4 campaign.", listId: "LIST-PRODUCTION", order: 0, members: ["MEM-SK"], labels: ["LBL-COPY"], startDate: "2026-08-12", dueDate: "2026-08-20", dueComplete: false, priority: "Normal", estimate: "6h", checklists: [], attachments: [], comments: [], activity: [], customFields: { Channel: "Website" }, cover: "#7c4dff", watching: false, archived: false, createdBy: "Sofia Khan", createdAt: "12 Aug 2026" }],
+    { id: "BOARD-MKT", title: "Q4 marketing campaign", description: "Campaign planning, content production and launch approvals.", visibility: "Workspace", starred: false, background: "sunset", createdAt: sampleDisplayDate(-45), updatedAt: sampleDisplayDate(-3), calendarSync: true, driveFolder: "Take Me / Marketing / Q4", archived: false, members: [{ id: "MEM-SK", name: "Sofia Khan", initials: "SK", email: "sofia.khan@takeme.taxi", color: "#7c4dff" }, { id: "MEM-DC", name: "Daniel Cole", initials: "DC", email: "daniel.cole@takeme.taxi", color: "#d76b16" }], labels: [{ id: "LBL-COPY", name: "Copy", color: "#007eae" }, { id: "LBL-DESIGN", name: "Design", color: "#7c4dff" }], lists: [{ id: "LIST-BRIEF", title: "Briefs", order: 0, color: "#75838a", limit: 0 }, { id: "LIST-PRODUCTION", title: "Production", order: 1, color: "#d76b16", limit: 6 }, { id: "LIST-APPROVAL", title: "Approval", order: 2, color: "#7c4dff", limit: 3 }, { id: "LIST-LIVE", title: "Live", order: 3, color: "#168a58", limit: 0 }], cards: [{ id: "CARD-301", title: "Passenger app launch story", description: "Customer story for the Q4 campaign.", listId: "LIST-PRODUCTION", order: 0, members: ["MEM-SK"], labels: ["LBL-COPY"], startDate: sampleDate(-2), dueDate: sampleDate(6), dueComplete: false, priority: "Normal", estimate: "6h", checklists: [], attachments: [], comments: [], activity: [], customFields: { Channel: "Website" }, cover: "#7c4dff", watching: false, archived: false, createdBy: "Sofia Khan", createdAt: sampleDisplayDate(-2) }],
     },
   ],
   projectAutomations: [
@@ -311,6 +357,33 @@ export const defaultPortalState: PortalState = {
     { id: "TPL-04", name: "Employee onboarding", category: "People", description: "Coordinate every new-starter action.", lists: ["Before joining", "First day", "First week", "First month", "Complete"], color: "forest" },
   ],
   widgets: ["approvals", "calendar", "tasks", "news", "quickLinks"],
+};
+
+export const defaultPortalState: PortalState = {
+  ...legacySamplePortalState,
+  dataMode: "operational",
+  profile: { name: "Company employee", jobTitle: "", email: "", phone: "", timezone: "Europe/London", department: "" },
+  employees: [],
+  requests: [],
+  approvals: [],
+  tasks: [],
+  events: [],
+  conversations: [],
+  documents: [],
+  articles: [],
+  leave: [],
+  shifts: [],
+  drivers: [],
+  vehicles: [],
+  incidents: [],
+  handovers: [],
+  services: [],
+  notifications: [],
+  audit: [],
+  projectBoards: [],
+  projectAutomations: [],
+  projectTemplates: [],
+  widgets: ["approvals", "calendar", "tasks", "quickLinks"],
 };
 
 export function mergePortalState(value: Partial<PortalState> | null | undefined): PortalState {

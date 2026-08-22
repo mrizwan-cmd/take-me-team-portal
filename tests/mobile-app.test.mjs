@@ -28,6 +28,8 @@ test("the service worker provides an offline shell without caching private APIs"
   const source = await readText("public/sw.js");
   assert.match(source, /offline\.html/u);
   assert.match(source, /pathname\.startsWith\("\/api\/"\)/u);
+  assert.match(source, /const cacheCopy = response\.clone\(\);/u);
+  assert.doesNotMatch(source, /cache\.put\([^\n]+response\.clone\(\)/u);
   assert.match(source, /event\.request\.mode === "navigate"/u);
   assert.match(source, /SKIP_WAITING/u);
 });

@@ -36,6 +36,7 @@ function passwordMatches(password: string, stored: string) {
 }
 
 function temporaryLoginEnabled() {
+  if (process.env.NODE_ENV === "production") return false;
   const expiresAt = Date.parse(process.env.TEMP_ADMIN_EXPIRES_AT || "");
   return Boolean(
     process.env.TEMP_ADMIN_USERNAME

@@ -37,6 +37,14 @@ test("small-screen carousels and onboarding controls stay inside usable phone bo
   assert.match(onboarding, /\.onboarding-dialog/u);
 });
 
+test("the mobile sidebar uses three real layout rows and a fixed status dot", async () => {
+  const [globalStyles, mobile] = await Promise.all([read("app/globals.css"), read("app/mobile.css")]);
+  assert.match(globalStyles, /grid-template-rows: auto minmax\(0, 1fr\) auto/u);
+  assert.match(globalStyles, /\.profile-button \.live-dot[\s\S]*?flex: 0 0 8px/u);
+  assert.match(globalStyles, /\.brand h1[\s\S]*?font-size: 18px/u);
+  assert.doesNotMatch(mobile, /grid-template-rows: auto auto minmax\(0, 1fr\) auto auto/u);
+});
+
 test("modals prioritise their explicitly marked initial field", async () => {
   const source = await read("app/portal-ui.tsx");
   assert.match(source, /querySelector<HTMLElement>\("\[data-initial-focus\]"\)\s*\|\|/u);

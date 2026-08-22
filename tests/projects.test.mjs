@@ -26,12 +26,14 @@ test("project workspace covers visual planning and detailed collaboration", asyn
   assert.match(source, /projectTemplates/u);
 });
 
-test("project data is durable and included in state validation", async () => {
-  const [data, route] = await Promise.all([read("app/portal-data.ts"), read("app/api/portal-state/route.ts")]);
+test("project data is durable and included in feature-scoped validation", async () => {
+  const [data, schema, route] = await Promise.all([read("app/portal-data.ts"), read("app/api/portal-state/_schema.ts"), read("app/api/portal-state/features/route.ts")]);
   for (const field of ["projectBoards", "projectAutomations", "projectTemplates"]) {
     assert.match(data, new RegExp(`${field}:`, "u"));
-    assert.match(route, new RegExp(`arrayFields[^;]+${field}`, "su"));
+    assert.match(schema, new RegExp(field, "u"));
   }
+  assert.match(route, /portal_feature_state/u);
+  assert.match(route, /feature_revision_conflict/u);
 });
 
 test("approval records are not returned to employees without approval access", async () => {

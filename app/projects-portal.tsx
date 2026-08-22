@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { makeId, type ProjectAutomation, type ProjectBoard, type ProjectCard, type ProjectList, type ProjectTemplate, type PortalState } from "./portal-data";
+import { addDays, formatDateTime, localDateInput, makeId, startOfWeek, type ProjectAutomation, type ProjectBoard, type ProjectCard, type ProjectList, type ProjectTemplate, type PortalState } from "./portal-data";
 import { EmptyState, Modal, PageIntro, StatusPill, SvgIcon, Toggle, type Notify } from "./portal-ui";
 import type { UpdatePortal } from "./employee-portal";
 
@@ -9,7 +9,7 @@ type Props = { state: PortalState; updateState: UpdatePortal; notify: Notify };
 type View = "Board" | "Table" | "Calendar" | "Timeline" | "Dashboard" | "Activity";
 
 const boardColors: Record<string, string> = { ocean: "linear-gradient(135deg,#006f9e,#02a6eb)", midnight: "linear-gradient(135deg,#17262d,#31505d)", sunset: "linear-gradient(135deg,#b94d39,#e69b3b)", forest: "linear-gradient(135deg,#146447,#42a775)" };
-const today = "2026-08-14";
+const today = localDateInput(new Date());
 const completion = (card: ProjectCard) => { const items = card.checklists.flatMap(list => list.items); return items.length ? Math.round(items.filter(item => item.complete).length / items.length * 100) : 0; };
 const cardDateTone = (card: ProjectCard) => card.dueComplete ? "complete" : card.dueDate && card.dueDate < today ? "late" : card.dueDate === today ? "today" : "upcoming";
 
@@ -31,7 +31,7 @@ export default function ProjectsPortal({ state, updateState, notify }: Props) {
 
   const updateBoard = (updater: (current: ProjectBoard) => ProjectBoard) => updateState(current => ({
     ...current,
-    projectBoards: current.projectBoards.map(item => item.id === boardId ? { ...updater(item), updatedAt: "Just now" } : item),
+    projectBoards: current.projectBoards.map(item => item.id === boardId ? { ...updater(item), updatedAt: formatDateTime() } : item),
   }));
 
   const openBoard = (id: string) => {
@@ -69,8 +69,8 @@ export default function ProjectsPortal({ state, updateState, notify }: Props) {
       labels: defaultLabels(),
       lists: template.lists.map((title, index) => ({ id: listIds[index], title, order: index, color: index === template.lists.length - 1 ? "#168a58" : "#75838a", limit: 0 })),
       cards: [],
-      createdAt: "Just now",
-      updatedAt: "Just now",
+      createdAt: formatDateTime(),
+      updatedAt: formatDateTime(),
       calendarSync: false,
       driveFolder: "",
       archived: false,
@@ -99,11 +99,11 @@ export default function ProjectsPortal({ state, updateState, notify }: Props) {
       return current;
     }
     const rules = current.projectAutomations.filter(rule => rule.boardId === boardId && rule.enabled && rule.trigger === "Card moved" && rule.triggerValue === listId);
-    let moved = activeBoard.cards.map(card => card.id === cardId ? { ...card, listId, order: activeBoard.cards.filter(item => item.listId === listId).length, activity: [{ id: makeId("ACT"), actor: current.profile.name, action: `moved this card to ${destination?.title || "another list"}`, time: "Just now" }, ...card.activity] } : card);
+    let moved = activeBoard.cards.map(card => card.id === cardId ? { ...card, listId, order: activeBoard.cards.filter(item => item.listId === listId).length, activity: [{ id: makeId("ACT"), actor: current.profile.name, action: `moved this card to ${destination?.title || "another list"}`, time: formatDateTime() }, ...card.activity] } : card);
     for (const rule of rules) moved = moved.map(card => card.id !== cardId ? card : applyRule(card, rule));
     return {
       ...current,
-      projectBoards: current.projectBoards.map(item => item.id === boardId ? { ...item, cards: moved, updatedAt: "Just now" } : item),
+      projectBoards: current.projectBoards.map(item => item.id === boardId ? { ...item, cards: moved, updatedAt: formatDateTime() } : item),
       projectAutomations: current.projectAutomations.map(rule => rules.some(item => item.id === rule.id) ? { ...rule, runs: rule.runs + 1 } : rule),
     };
   });
@@ -191,7 +191,8 @@ export default function ProjectsPortal({ state, updateState, notify }: Props) {
 function ProjectsHome({ state, openBoard, newBoard, createFromTemplate }: { state: PortalState; openBoard: (id: string) => void; newBoard: () => void; createFromTemplate: (template: ProjectTemplate) => void }) {
   const boards = state.projectBoards.filter(board => !board.archived);
   const cards = boards.flatMap(board => board.cards.filter(card => !card.archived));
-  const dueSoon = cards.filter(card => !card.dueComplete && card.dueDate && card.dueDate <= "2026-08-21").length;
+  const dueSoonDate = localDateInput(addDays(new Date(), 7));
+  const dueSoon = cards.filter(card => !card.dueComplete && card.dueDate && card.dueDate <= dueSoonDate).length;
 
   return (
     <div className="page project-home">
@@ -348,7 +349,7 @@ function TableView({ board, cards, openCard }: { board: ProjectBoard; cards: Pro
 
 function CalendarView({ board, cards, openCard }: { board: ProjectBoard; cards: ProjectCard[]; openCard: (id: string) => void }) {
   const days = Array.from({ length: 14 }, (_, index) => {
-    const date = new Date("2026-08-10T12:00:00");
+    const date = startOfWeek(new Date());
     date.setDate(date.getDate() + index);
     return date;
   });
@@ -468,12 +469,12 @@ function CardDetails({ card, board, state, updateBoard, close, notify, updateSta
 
   const change = (values: Partial<ProjectCard>, action = "updated this card") => updateBoard(current => ({
     ...current,
-    cards: current.cards.map(item => item.id === card.id ? { ...item, ...values, activity: [{ id: makeId("ACT"), actor: "Muneeb Rizwan", action, time: "Just now" }, ...item.activity] } : item),
+    cards: current.cards.map(item => item.id === card.id ? { ...item, ...values, activity: [{ id: makeId("ACT"), actor: state.profile.name, action, time: formatDateTime() }, ...item.activity] } : item),
   }));
 
   const addComment = () => {
     if (!comment.trim()) return;
-    change({ comments: [...card.comments, { id: makeId("COM"), author: "Muneeb Rizwan", initials: "MR", text: comment.trim(), createdAt: "Just now" }] }, "commented");
+    change({ comments: [...card.comments, { id: makeId("COM"), author: state.profile.name, initials: initials(state.profile.name), text: comment.trim(), createdAt: formatDateTime() }] }, "commented");
     setComment("");
   };
 
@@ -488,7 +489,7 @@ function CardDetails({ card, board, state, updateBoard, close, notify, updateSta
 
   const addAttachment = () => {
     if (!attachmentName.trim() || !attachmentUrl.trim()) return;
-    change({ attachments: [...card.attachments, { id: makeId("ATT"), name: attachmentName.trim(), url: attachmentUrl.trim(), source: attachmentUrl.includes("drive.google") ? "Google Drive" : "Link", addedBy: "Muneeb Rizwan", addedAt: "Just now" }] }, "attached a file");
+    change({ attachments: [...card.attachments, { id: makeId("ATT"), name: attachmentName.trim(), url: attachmentUrl.trim(), source: attachmentUrl.includes("drive.google") ? "Google Drive" : "Link", addedBy: state.profile.name, addedAt: formatDateTime() }] }, "attached a file");
     setAttachmentName("");
     setAttachmentUrl("");
   };
@@ -682,13 +683,13 @@ function NewCardModal({ board, listId, updateBoard, close, notify }: { board: Pr
       checklists: [],
       attachments: [],
       comments: [],
-      activity: [{ id: makeId("ACT"), actor: "Muneeb Rizwan", action: "created this card", time: "Just now" }],
+      activity: [{ id: makeId("ACT"), actor: "Portal user", action: "created this card", time: formatDateTime() }],
       customFields: { Team: "", Sprint: "", Risk: "" },
       cover: "",
       watching: false,
       archived: false,
       createdBy: "Muneeb Rizwan",
-      createdAt: "Just now",
+      createdAt: formatDateTime(),
     };
     updateBoard(current => ({ ...current, cards: [...current.cards, card] }));
     close();
@@ -753,8 +754,8 @@ function NewBoardModal({ templates, state, updateState, close, openBoard }: { te
       labels: defaultLabels(),
       lists: ["To do", "In progress", "Done"].map((name, index) => ({ id: `${id}-LIST-${index}`, title: name, order: index, color: index === 2 ? "#168a58" : "#75838a", limit: 0 })),
       cards: [],
-      createdAt: "Just now",
-      updatedAt: "Just now",
+      createdAt: formatDateTime(),
+      updatedAt: formatDateTime(),
       calendarSync: false,
       driveFolder: "",
       archived: false,
@@ -855,7 +856,7 @@ function applyRule(card: ProjectCard, rule: ProjectAutomation): ProjectCard {
   if (rule.action === "Add label" && rule.actionValue) return { ...card, labels: [...new Set([...card.labels, rule.actionValue])] };
   if (rule.action === "Assign member" && rule.actionValue) return { ...card, members: [...new Set([...card.members, rule.actionValue])] };
   if (rule.action === "Move card" && rule.actionValue) return { ...card, listId: rule.actionValue };
-  if (rule.action === "Post comment") return { ...card, comments: [...card.comments, { id: makeId("COM"), author: "Automation", initials: "⚡", text: rule.actionValue || "Automation completed this step.", createdAt: "Just now" }] };
+  if (rule.action === "Post comment") return { ...card, comments: [...card.comments, { id: makeId("COM"), author: "Automation", initials: "⚡", text: rule.actionValue || "Automation completed this step.", createdAt: formatDateTime() }] };
   return card;
 }
 

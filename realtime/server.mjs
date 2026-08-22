@@ -93,6 +93,12 @@ websocketServer.on("connection", (client, _request, claims) => {
     if (event.type === "chat.typing" && typeof event.conversationId === "string" && event.conversationId.length <= 120) {
       return broadcast({ type: "chat.typing", actor, conversationId: event.conversationId, active: Boolean(event.active), sentAt: now }, client);
     }
+    if (event.type === "chat.message" && typeof event.conversationId === "string" && event.conversationId.length <= 120 && typeof event.messageId === "string" && event.messageId.length <= 120) {
+      return broadcast({ type: "chat.message", actor, conversationId: event.conversationId, messageId: event.messageId, sentAt: now }, client);
+    }
+    if (event.type === "chat.receipt" && typeof event.conversationId === "string" && event.conversationId.length <= 120 && typeof event.messageId === "string" && event.messageId.length <= 120 && ["delivered", "read"].includes(event.status)) {
+      return broadcast({ type: "chat.receipt", actor, conversationId: event.conversationId, messageId: event.messageId, status: event.status, sentAt: now }, client);
+    }
     if (event.type === "presence.viewing" && typeof event.area === "string" && event.area.length <= 80) {
       const resourceId = typeof event.resourceId === "string" ? event.resourceId.slice(0, 120) : "";
       return broadcast({ type: "presence.viewing", actor, area: event.area, resourceId, sentAt: now }, client);

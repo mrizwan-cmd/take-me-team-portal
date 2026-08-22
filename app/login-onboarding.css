@@ -245,6 +245,9 @@
   margin-top: 16px;
 }
 
+.login-message small { display: block; margin-top: 8px; font-size: 11px; }
+.login-message code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+
 .login-footnote {
   position: absolute;
   bottom: 16px;

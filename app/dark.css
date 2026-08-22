@@ -3,12 +3,12 @@
    specific light defaults cannot override the theme. */
 .dark-mode {
   --blue: #007eae;
-  --canvas: #0b1115;
-  --white: #151f24;
+  --canvas: #080d10;
+  --white: #18242a;
   --ink: #eef5f7;
   --muted: #adbdc4;
   --line: #34464f;
-  --soft: #1d2a30;
+  --soft: #202f36;
   --green: #6cdaa3;
   --green-bg: #153c2a;
   --amber: #ffd083;
@@ -18,6 +18,34 @@
   --shadow: 0 14px 36px rgba(0, 0, 0, 0.32);
   color: var(--ink);
   color-scheme: dark;
+}
+
+.dark-mode .topbar {
+  background: #10191e;
+  border-bottom-color: #2d414a;
+}
+.dark-mode .card,
+.dark-mode .data-row,
+.dark-mode .table-row {
+  background: #18242a;
+}
+.dark-mode .widget {
+  border-color: #3a505a;
+}
+.dark-mode .dashboard-grid .widget:nth-child(even) {
+  background: #1b292f;
+}
+.dark-mode .home-empty-state {
+  background: linear-gradient(135deg, #12262f, #162d36);
+  border-color: #315866;
+}
+.dark-mode .sample-data-banner {
+  background: #151f24;
+  border-color: #34464f;
+  color: #9cafb7;
+}
+.dark-mode .sample-data-banner b {
+  color: #c5d2d7;
 }
 
 .dark-mode button,
@@ -267,7 +295,7 @@
 }
 
 .dark-mode .segmented button.active,
-.dark-mode .chat-channels button.active {
+.dark-mode .chat-contacts button.active {
   background: #123f51;
   color: #81ddff;
 }
@@ -306,12 +334,79 @@
   color: #fff;
 }
 
-.dark-mode .chat-channels {
+.dark-mode .chat-contacts {
   background: #111a1f;
 }
 
 .dark-mode .composer-area {
   background: var(--white);
+}
+
+.dark-mode .active-chat-page .chat-layout {
+  border-color: #304148;
+  box-shadow: 0 20px 52px rgb(0 0 0 / 28%);
+}
+
+.dark-mode .active-chat-page .chat-contacts,
+.dark-mode .active-chat-page .conversation > header,
+.dark-mode .active-chat-page .composer-area {
+  background: #182329;
+}
+
+.dark-mode .active-chat-page .conversation,
+.dark-mode .active-chat-page .messages {
+  background-color: #111a1f;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgb(163 206 221 / 6%) 1px,
+    transparent 0
+  );
+}
+
+.dark-mode .active-chat-page .chat-contacts > input,
+.dark-mode .active-chat-page .chat-header-actions input,
+.dark-mode .active-chat-page .composer {
+  border-color: #34464e;
+  background: #243138;
+  color: var(--ink);
+}
+
+.dark-mode
+  .active-chat-page
+  .chat-contacts
+  > button:not(.chat-icon-button):hover,
+.dark-mode .active-chat-page .format-toolbar button:hover,
+.dark-mode .active-chat-page .message-actions button:hover,
+.dark-mode .active-chat-page .reaction-list button:hover {
+  background: #2a3a41;
+}
+
+.dark-mode .active-chat-page .message > div {
+  border-color: #33454d;
+  background: #202d33;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 20%);
+}
+
+.dark-mode .active-chat-page .message.mine > div {
+  border-color: #155c76;
+  background: #12455a;
+}
+
+.dark-mode .active-chat-page .message-actions,
+.dark-mode .active-chat-page .reaction-list button {
+  border-color: #3b5059;
+  background: #223138;
+  color: var(--ink);
+}
+
+.dark-mode .active-chat-page .composer textarea,
+.dark-mode .active-chat-page .format-toolbar button,
+.dark-mode .active-chat-page .message-actions button {
+  color: var(--ink);
+}
+
+.dark-mode .active-chat-page .composer-context {
+  background: #153744;
 }
 
 .dark-mode .absence-person span {
@@ -507,5 +602,7 @@
 .dark-mode.high-contrast .modal,
 .dark-mode.high-contrast .command-palette,
 .dark-mode.high-contrast .utility-panel {
-  box-shadow: 0 0 0 1px var(--line), 0 16px 38px rgba(0, 0, 0, 0.42);
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 16px 38px rgba(0, 0, 0, 0.42);
 }

@@ -201,7 +201,7 @@ export async function recordGoogleConnection(email: string) {
   if (!row) return;
   const data = JSON.parse(row.data);
   data.adminSettings = { ...(data.adminSettings || {}), googleConnected: true };
-  data.audit = [{ id: `AUD-${Date.now().toString(36).toUpperCase()}`, actor: email, action: "Connected personal Google Workspace account", area: "Integrations", time: "Just now" }, ...(data.audit || [])];
+  data.audit = [{ id: `AUD-${Date.now().toString(36).toUpperCase()}`, actor: email, action: "Connected personal Google Workspace account", area: "Integrations", time: new Date().toISOString() }, ...(data.audit || [])];
   await env.DB.prepare("UPDATE portal_state SET data = ?, updated_at = ? WHERE workspace_id = ?").bind(JSON.stringify(data), Date.now(), workspaceId).run();
 }
 
