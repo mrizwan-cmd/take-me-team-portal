@@ -4849,7 +4849,8 @@ p {
 .event-attendees > div > span { align-items: center; background: var(--soft); border: 1px solid var(--line); border-radius: 999px; display: flex; font-size: 11px; gap: 6px; max-width: 100%; padding: 4px 9px 4px 4px; }
 .event-attendees > div > span > i { background: var(--blue-dark); border-radius: 50%; color: #fff; display: grid; flex: 0 0 24px; font-size: 8px; font-style: normal; font-weight: 800; height: 24px; place-items: center; }
 .event-agenda .calendar-description { font-size: 13px; margin-top: 12px; }
-.event-agenda .calendar-description p > strong:first-child { display: block; font-size: 13px; margin-bottom: 3px; }
+.event-agenda .calendar-description strong { display: block; font-size: 13px; margin: 12px 0 3px; }
+.event-agenda .calendar-description > :first-child > strong:first-child { margin-top: 0; }
 .event-agenda > p { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
 .event-modal-actions { align-items: center; border-top: 1px solid var(--line); display: flex; gap: 12px; justify-content: space-between; margin-top: 22px; padding-top: 18px; }
 .event-modal-actions > div { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
