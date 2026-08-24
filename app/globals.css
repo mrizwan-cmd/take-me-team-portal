@@ -51,11 +51,12 @@ body {
   min-height: 100%;
   background: var(--canvas);
   color: var(--ink);
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
-    sans-serif;
+  font-family: var(--font-portal), "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+html body * { font-family: var(--font-portal), "Segoe UI", sans-serif !important; }
+html body code, html body pre, html body kbd { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace !important; }
 
 button,
 input,
@@ -4865,6 +4866,50 @@ p {
   .event-modal-actions > div { display: grid; grid-template-columns: 1fr 1fr; }
   .event-modal-actions .meet-button { grid-column: 1 / -1; grid-row: 1; }
   .event-cancel-button { align-self: center; }
+}
+
+/* Calendar event creation ------------------------------------------------- */
+.calendar-create-modal { width: min(720px, calc(100vw - 32px)); }
+.calendar-create-modal > h2 { font-size: 28px; margin-bottom: 6px; }
+.calendar-create-modal .back-button { margin-top: 8px; }
+.event-create-lead { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 2px 40px 18px 0; }
+.event-create-form { gap: 16px; }
+.event-create-form > label:first-child { font-size: 11px; letter-spacing: .02em; }
+.event-create-form > label:first-child input { font-size: 16px; font-weight: 650; height: 50px; padding-inline: 14px; }
+.event-schedule-card { background: var(--soft); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+.event-schedule-card > header { align-items: center; display: flex; gap: 11px; margin-bottom: 14px; }
+.event-schedule-card > header > i { background: var(--white); border: 1px solid var(--line); border-radius: 10px; color: var(--blue-dark); display: grid; flex: 0 0 38px; height: 38px; place-items: center; }
+.event-schedule-card > header b, .event-schedule-card > header small { display: block; }
+.event-schedule-card > header b { font-size: 13px; }
+.event-schedule-card > header small { color: var(--muted); font-size: 11px; margin-top: 2px; }
+.event-schedule-grid { display: grid; gap: 10px; grid-template-columns: 1.35fr 1fr 1fr; }
+.event-schedule-grid > label { display: grid; gap: 6px; font-size: 11px; font-weight: 750; }
+.event-schedule-grid input { background: var(--white); height: 46px; }
+.event-date-suggestions { align-items: center; margin-top: 11px; }
+.event-date-suggestions > span { color: var(--muted); font-size: 10px; font-weight: 750; margin-right: 3px; text-transform: uppercase; }
+.event-date-suggestions button { background: var(--white); border: 1px solid var(--line); min-height: 28px; padding-inline: 10px; }
+.event-meet-choice { align-items: center; background: #effaf4; border: 1px solid #b9e3cb; border-radius: 14px; cursor: pointer; display: flex !important; gap: 12px !important; min-height: 66px; padding: 12px 14px; }
+.event-meet-choice > i { background: #fff; border-radius: 10px; color: #0b8043; display: grid; flex: 0 0 38px; height: 38px; place-items: center; }
+.event-meet-choice > span { flex: 1; min-width: 0; }
+.event-meet-choice b, .event-meet-choice small { display: block; }
+.event-meet-choice b { font-size: 13px; }
+.event-meet-choice small { color: #3e6852; font-size: 11px; margin-top: 2px; }
+.event-create-form .event-meet-choice input[type="checkbox"] { accent-color: #0b8043; flex: 0 0 20px; height: 20px; margin: 0; min-height: 20px; width: 20px; }
+.event-create-form .advanced-details > summary { min-height: 48px; padding: 14px 15px; }
+.event-repeat-choice { align-items: center; cursor: pointer; display: flex !important; gap: 10px !important; padding: 4px 2px; }
+.event-repeat-choice input[type="checkbox"] { flex: 0 0 18px; height: 18px; margin: 0; min-height: 18px; width: 18px; }
+.event-repeat-choice b, .event-repeat-choice small { display: block; }
+.event-repeat-choice b { font-size: 12px; }
+.event-repeat-choice small { color: var(--muted); font-size: 10px; margin-top: 1px; }
+.calendar-create-modal .modal-actions { margin-top: 2px; }
+
+@media (max-width: 700px) {
+  .calendar-create-modal > h2 { font-size: 24px; }
+  .event-create-lead { margin-right: 28px; }
+  .event-schedule-grid { grid-template-columns: 1fr 1fr; }
+  .event-date-field { grid-column: 1 / -1; }
+  .event-date-suggestions > span { flex-basis: 100%; }
+  .event-meet-choice { min-height: 70px; }
 }
 
 @keyframes surface-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } }

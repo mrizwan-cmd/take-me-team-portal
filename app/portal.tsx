@@ -708,9 +708,10 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
   };
 
   return (
-    <Modal title={labels[kind]?.[0] || "Create item"} eyebrow={labels[kind]?.[1]} close={close} className="medium-modal">
+    <Modal title={labels[kind]?.[0] || "Create item"} eyebrow={labels[kind]?.[1]} close={close} className={`medium-modal ${kind === "event" ? "calendar-create-modal" : ""}`}>
       <button className="back-button" onClick={back}>← All create options</button>
-      <form className="create-form" onSubmit={submit}>
+      {kind === "event" && <p className="event-create-lead">Choose when it happens, then invite colleagues or add supporting details if needed.</p>}
+      <form className={`create-form ${kind === "event" ? "event-create-form" : ""}`} onSubmit={submit}>
         {kind === "conversation" ? (
           <div className="employee-message-picker">
             <label>
@@ -780,7 +781,17 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
             </select>
           </label>
         )}
-        {(kind === "event" || kind === "task" || kind === "leave") && (
+        {kind === "event" ? (
+          <section className="event-schedule-card">
+            <header><i><SvgIcon name="calendar" size={18} /></i><span><b>Date and time</b><small>Times use {state.profile.timezone || "your portal timezone"}</small></span></header>
+            <div className="event-schedule-grid">
+              <label className="event-date-field">Date<input type="date" value={date} onChange={event => setDate(event.target.value)} />{errors.date && <small className="field-error" role="alert">{errors.date}</small>}</label>
+              <label>Starts<input type="time" value={start} onChange={event => setStart(event.target.value)} /></label>
+              <label>Ends<input type="time" value={end} onChange={event => setEnd(event.target.value)} /></label>
+            </div>
+            <div className="date-suggestions event-date-suggestions"><span>Quick choices</span><button type="button" onClick={() => setDate(localDateInput(new Date()))}>Today</button><button type="button" onClick={() => setDate(localDateInput(addDays(new Date(), 1)))}>Tomorrow</button><button type="button" onClick={() => setDate(localDateInput(addDays(new Date(), 7)))}>Next week</button></div>
+          </section>
+        ) : (kind === "task" || kind === "leave") && (
           <div className="form-grid">
             <label>
               {kind === "task" ? "Due date" : "Date"}
@@ -792,18 +803,13 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
               </div>
               {errors.date && <small className="field-error" role="alert">{errors.date}</small>}
             </label>
-            {kind === "event" && (
-              <>
-                <label>Start<input type="time" value={start} onChange={event => setStart(event.target.value)} /></label>
-                <label>End<input type="time" value={end} onChange={event => setEnd(event.target.value)} /></label>
-              </>
-            )}
             {kind === "leave" && (
               <label>End date<input type="date" min={date} value={endDate} onChange={event => setEndDate(event.target.value)} /></label>
             )}
           </div>
         )}
         {errors.time && <small className="field-error" role="alert">{errors.time}</small>}
+        {kind === "event" && <label className="event-meet-choice"><i><SvgIcon name="message" size={18} /></i><span><b>Add Google Meet</b><small>Create a secure video link for everyone invited</small></span><input type="checkbox" checked={meet} onChange={event => setMeet(event.target.checked)} /></label>}
         {(kind === "leave" || (kind === "request" && ["Purchase order", "Expense"].includes(type))) && (
           <label>
             {kind === "leave" ? "Number of days" : "Amount, if applicable"}
@@ -817,7 +823,6 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
             <div>
               {(kind === "event" || kind === "task") && <label>{kind === "task" ? "Assign to" : "Guests"}<input value={people} onChange={event => setPeople(event.target.value)} placeholder="Names or @takeme.taxi addresses, separated by commas" />{!!state.preferences.recentEmployeeEmails.length && <small>Recent: {state.preferences.recentEmployeeEmails.slice(0, 3).map(email => <button type="button" className="inline-choice" key={email} onClick={() => setPeople(email)}>{email.split("@")[0]}</button>)}</small>}</label>}
               <label>Details<textarea value={details} onChange={event => setDetails(event.target.value)} placeholder="Add useful context" /></label>
-              {kind === "event" && <label className="check-row"><input type="checkbox" checked={meet} onChange={event => setMeet(event.target.checked)} /> Add Google Meet video call</label>}
               <div className="attachment-dropzone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); setFiles(current => [...current, ...Array.from(event.dataTransfer.files)].slice(0, 6)); }}>
                 <b>Attachments</b><span>Drag files here or choose up to six files.</span>
                 <input type="file" multiple onChange={event => setFiles(current => [...current, ...Array.from(event.target.files || [])].slice(0, 6))} />
@@ -832,8 +837,8 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
             <input type="checkbox" checked={draft} onChange={event => setDraft(event.target.checked)} /> Save as draft
           </label>
         )}
-        <label className="check-row">
-          <input type="checkbox" checked={submitAnother} onChange={event => setSubmitAnother(event.target.checked)} /> Create another after saving
+        <label className={kind === "event" ? "event-repeat-choice" : "check-row"}>
+          <input type="checkbox" checked={submitAnother} onChange={event => setSubmitAnother(event.target.checked)} /><span><b>Create another after saving</b>{kind === "event" && <small>Keep this window open with a fresh event.</small>}</span>
         </label>
         <div className="modal-actions">
           <button type="button" className="secondary" onClick={close}>Cancel</button>

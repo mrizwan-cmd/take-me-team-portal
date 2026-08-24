@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 import "./dark.css";
 import "./mobile.css";
 import "./projects.css";
 import "./login-onboarding.css";
 import "./temp-admin-login.css";
+
+const portalFont = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-portal" });
 
 export const metadata: Metadata = {
   title: "Take Me Team Portal",
@@ -42,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={portalFont.variable}>
       <body>
         {children}
       </body>
