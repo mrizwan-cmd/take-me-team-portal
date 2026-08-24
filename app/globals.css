@@ -3872,6 +3872,21 @@ p {
   min-height: 95px;
   resize: vertical;
 }
+.create-form label.check-row {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 0;
+}
+.create-form label.check-row input[type="checkbox"] {
+  flex: 0 0 18px;
+  height: 18px;
+  margin: 0;
+  min-height: 18px;
+  width: 18px;
+}
 .employee-message-picker {
   display: grid;
   gap: 10px;
