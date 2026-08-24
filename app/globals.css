@@ -2392,6 +2392,103 @@ p {
 }
 
 /* Conversation-first chat surface */
+.chat-source-tabs {
+  width: fit-content;
+  display: flex;
+  gap: 4px;
+  margin: 0 0 14px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f2f6f7;
+}
+.chat-source-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 7px 13px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #526871;
+  font-size: 12px;
+  font-weight: 750;
+}
+.chat-source-tabs button.active { background: #fff; color: var(--ink); box-shadow: 0 2px 8px rgb(24 49 58 / 9%); }
+.chat-source-tabs em, .experimental-badge { padding: 2px 6px; border-radius: 8px; background: #dff5e8; color: #087a47; font-size: 8px; font-style: normal; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+.google-chat-mark { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 5px; background: #0f9d58; color: #fff; font-size: 10px; font-weight: 900; }
+.button-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.google-chat-state { min-height: 520px; display: grid; place-items: center; align-content: center; gap: 9px; text-align: center; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
+.google-chat-state > i { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 16px; background: #e6f4ea; color: #0f8b51; font-style: normal; }
+.google-chat-state h2 { margin: 3px 0 0; font-size: 24px; }
+.google-chat-state p { max-width: 570px; margin: 0 20px 10px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.google-chat-state small { color: var(--muted); font-size: 10.5px; }
+.google-chat-layout { display: grid; grid-template-columns: 270px minmax(400px, 1fr) 230px; height: min(720px, calc(100dvh - 220px)); min-height: 580px; overflow: hidden; border-radius: 18px; }
+.google-space-list, .google-context { min-width: 0; background: #fff; }
+.google-space-list { display: flex; flex-direction: column; padding: 12px 9px; border-right: 1px solid var(--line); }
+.google-space-list > header { display: flex; align-items: center; justify-content: space-between; padding: 5px 8px 11px; }
+.google-space-list h3, .google-context h3 { margin: 0; font-size: 15px; }
+.google-space-list header small { color: var(--muted); font-size: 10px; }
+.google-space-list header button { width: 34px; height: 34px; border: 0; border-radius: 50%; background: #edf5f1; color: #0f8b51; font-size: 18px; }
+.google-space-list > input { min-height: 40px; margin: 0 3px 8px; padding: 8px 13px; border: 1px solid transparent; border-radius: 20px; background: #f1f4f5; font-size: 12px; }
+.google-space-scroll { min-height: 0; overflow-y: auto; }
+.google-space-scroll > button { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 8px; border: 0; border-radius: 11px; background: transparent; text-align: left; }
+.google-space-scroll > button:hover { background: #f2f7f4; }
+.google-space-scroll > button.active { background: #e6f4ea; color: #176b45; }
+.google-space-scroll button > i { width: 38px; height: 38px; flex: 0 0 38px; display: grid; place-items: center; border-radius: 12px; background: #d9efe2; color: #14794b; font-style: normal; font-size: 11px; font-weight: 850; }
+.google-space-scroll button > span { min-width: 0; display: grid; gap: 2px; }
+.google-space-scroll b, .google-space-scroll small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.google-space-scroll b { font-size: 12px; }
+.google-space-scroll small, .google-space-scroll > p { color: var(--muted); font-size: 10px; }
+.google-space-scroll > p { padding: 18px 10px; line-height: 1.5; }
+.google-conversation { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: #f7f9f8; }
+.google-conversation > header { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--line); background: #fff; }
+.google-conversation h2 { margin: 0; font-size: 15px; }
+.google-conversation header p { margin: 2px 0 0; color: var(--muted); font-size: 10px; }
+.google-conversation header a { min-height: 34px; padding: 7px 10px; font-size: 10.5px; }
+.google-messages { min-height: 0; overflow-y: auto; display: grid; align-content: start; gap: 12px; padding: 24px clamp(18px, 3vw, 42px); background-image: radial-gradient(circle at 1px 1px, rgb(68 125 91 / 7%) 1px, transparent 0); background-size: 22px 22px; }
+.google-messages article { display: flex; align-items: flex-end; gap: 8px; }
+.google-messages article.mine { flex-direction: row-reverse; }
+.google-messages article > i { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 50%; background: #d9efe2; color: #14794b; font-size: 8px; font-style: normal; font-weight: 850; }
+.google-messages article > div { max-width: min(78%, 640px); padding: 9px 12px; border: 1px solid #dfe7e2; border-radius: 5px 14px 14px; background: #fff; box-shadow: 0 1px 2px rgb(30 62 44 / 6%); }
+.google-messages article.mine > div { border-radius: 14px 5px 14px 14px; background: #e3f3e9; }
+.google-messages article b { display: block; margin-bottom: 3px; color: #14794b; font-size: 10px; }
+.google-messages article p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.46; }
+.google-messages article time { display: block; margin-top: 4px; color: var(--muted); font-size: 8.5px; text-align: right; }
+.google-message-state { align-self: center; justify-self: center; display: grid; gap: 5px; padding: 28px; color: var(--muted); text-align: center; font-size: 12px; }
+.google-message-state b { color: var(--ink); }
+.google-composer { display: flex; align-items: flex-end; gap: 8px; padding: 11px 12px; border-top: 1px solid var(--line); background: #fff; }
+.google-composer textarea { flex: 1; min-height: 44px; max-height: 120px; resize: vertical; padding: 12px 15px; border: 1px solid #d6dfda; border-radius: 22px; background: #f6f9f7; font: inherit; font-size: 12.5px; }
+.google-composer button { min-height: 40px; }
+.google-context { border-left: 1px solid var(--line); padding: 16px 12px; }
+.google-context header { padding: 5px 5px 12px; }
+.google-context header > span { color: #0f8b51; font-size: 8.5px; font-weight: 850; letter-spacing: .08em; }
+.google-context header p { margin: 5px 0 0; color: var(--muted); font-size: 10.5px; line-height: 1.45; }
+.google-context > button { width: 100%; display: flex; align-items: center; gap: 9px; padding: 10px 8px; border: 0; border-top: 1px solid #edf1ee; background: transparent; text-align: left; }
+.google-context > button:hover { background: #f2f7f4; }
+.google-context button > i { width: 32px; height: 32px; flex: 0 0 32px; display: grid; place-items: center; border-radius: 9px; background: #edf5f1; color: #14794b; font-style: normal; }
+.google-context button > span { min-width: 0; flex: 1; display: grid; gap: 2px; }
+.google-context button b { font-size: 11.5px; }
+.google-context button small { color: var(--muted); font-size: 9.5px; }
+.google-context button em { color: var(--muted); font-style: normal; }
+.google-chat-error { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; padding: 10px 13px; border: 1px solid #f0c2c2; border-radius: 10px; background: #fff2f2; color: #8d2525; font-size: 11.5px; }
+.google-chat-error button { border: 0; background: transparent; color: inherit; font-weight: 750; }
+
+@media (max-width: 1180px) {
+  .google-chat-layout { grid-template-columns: 250px minmax(380px, 1fr); }
+  .google-context { display: none; }
+}
+@media (max-width: 760px) {
+  .chat-source-tabs { width: 100%; }
+  .chat-source-tabs button { flex: 1; justify-content: center; }
+  .google-chat-layout { grid-template-columns: 1fr; height: auto; min-height: 0; overflow: visible; }
+  .google-space-list { max-height: 310px; border: 0; border-bottom: 1px solid var(--line); }
+  .google-conversation { min-height: 620px; }
+  .google-conversation > header { align-items: flex-start; }
+  .google-conversation header a { max-width: 116px; text-align: center; }
+}
+
 .active-chat-page > .page-intro {
   margin-bottom: 14px;
 }

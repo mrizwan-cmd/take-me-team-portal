@@ -22,6 +22,7 @@ import {
   type Notify,
 } from "./portal-ui";
 import ProjectsPortal from "./projects-portal";
+import GoogleChatPortal from "./google-chat-portal";
 import type { RealtimeControls } from "./use-realtime";
 
 export type UpdatePortal = (
@@ -81,13 +82,24 @@ export default function EmployeePortal(props: EmployeeProps) {
     case "Documents":
       return <DocumentsPage {...props} />;
     case "Chat":
-      return <ChatPage {...props} />;
+      return <ChatHub {...props} />;
     case "Leave":
     case "Leave & shifts":
       return <LeavePage {...props} />;
     default:
       return <HomePage {...props} />;
   }
+}
+
+function ChatHub(props: EmployeeProps) {
+  const [source, setSource] = useState<"portal" | "google">("portal");
+  return <div className="chat-hub">
+    <nav className="chat-source-tabs" aria-label="Choose chat service">
+      <button className={source === "portal" ? "active" : ""} aria-pressed={source === "portal"} onClick={() => setSource("portal")}><SvgIcon name="chat" size={16} />Portal chat</button>
+      <button className={source === "google" ? "active" : ""} aria-pressed={source === "google"} onClick={() => setSource("google")}><span className="google-chat-mark">G</span>Google Chat <em>Test</em></button>
+    </nav>
+    {source === "portal" ? <ChatPage {...props} /> : <GoogleChatPortal state={props.state} notify={props.notify} navigate={props.navigate} />}
+  </div>;
 }
 
 function WorkHub({ state, navigate, openCreate }: EmployeeProps) {

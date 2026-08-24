@@ -165,7 +165,7 @@ export async function googleConnectionStatus(request: Request, userId: string) {
   const missing = [!config.clientId && "GOOGLE_CLIENT_ID", !config.clientSecret && "GOOGLE_CLIENT_SECRET", !config.encryptionConfigured && "GOOGLE_TOKEN_ENCRYPTION_KEY"].filter(Boolean) as string[];
   const missingLogin = [!config.clientId && "GOOGLE_CLIENT_ID", !config.clientSecret && "GOOGLE_CLIENT_SECRET", !config.sessionConfigured && "PORTAL_SESSION_SECRET"].filter(Boolean) as string[];
   const tokens = missing.length ? null : await loadStoredTokens(userId).catch(() => null);
-  return { configured: missing.length === 0, loginConfigured: missingLogin.length === 0, connected: Boolean(tokens), email: tokens?.email || "", domain: config.domain, missing, missingLogin, loginRedirectUri: config.loginRedirectUri };
+  return { configured: missing.length === 0, loginConfigured: missingLogin.length === 0, connected: Boolean(tokens), email: tokens?.email || "", scope: tokens?.scope || "", domain: config.domain, missing, missingLogin, loginRedirectUri: config.loginRedirectUri };
 }
 
 export async function disconnectGoogle(userId: string) {

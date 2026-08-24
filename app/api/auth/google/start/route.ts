@@ -6,6 +6,8 @@ const scopes = [
   "openid", "email", "profile",
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/drive.metadata.readonly",
+  "https://www.googleapis.com/auth/chat.spaces.readonly",
+  "https://www.googleapis.com/auth/chat.messages",
 ];
 
 export async function GET(request: Request) {
