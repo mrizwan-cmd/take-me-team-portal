@@ -1409,7 +1409,7 @@ function CalendarPage({
             </div>
             <div>
               <dt>Notes</dt>
-              <dd>{selected.notes || "No notes"}</dd>
+              <dd>{selected.notes ? <SafeCalendarDescription value={selected.notes} /> : "No notes"}</dd>
             </div>
           </dl>
           <div className="modal-actions">
@@ -1485,6 +1485,36 @@ function CalendarPage({
       )}
     </div>
   );
+}
+
+function SafeCalendarDescription({ value }: { value: string }) {
+  const descriptionRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const container = descriptionRef.current;
+    if (!container) return;
+    const documentValue = new DOMParser().parseFromString(`<div>${value}</div>`, "text/html");
+    const source = documentValue.body.firstElementChild;
+    if (!source) { container.textContent = value; return; }
+    const allowedTags = new Set(["P", "STRONG", "B", "EM", "I", "BR", "UL", "OL", "LI", "A", "BLOCKQUOTE", "CODE", "PRE"]);
+    [...source.querySelectorAll("script, style, iframe, object, embed, form, input, button, svg, math")].forEach(element => element.remove());
+    [...source.querySelectorAll("*")].reverse().forEach(element => {
+      if (!allowedTags.has(element.tagName)) { element.replaceWith(...element.childNodes); return; }
+      const href = element.tagName === "A" ? element.getAttribute("href") : null;
+      [...element.attributes].forEach(attribute => element.removeAttribute(attribute.name));
+      if (element.tagName === "A" && href) {
+        try {
+          const parsed = new URL(href, window.location.origin);
+          if (["http:", "https:", "mailto:"].includes(parsed.protocol)) {
+            element.setAttribute("href", parsed.href);
+            element.setAttribute("target", "_blank");
+            element.setAttribute("rel", "noreferrer noopener");
+          }
+        } catch { /* Invalid links remain plain formatted text. */ }
+      }
+    });
+    container.replaceChildren(...[...source.childNodes].map(node => document.importNode(node, true)));
+  }, [value]);
+  return <div ref={descriptionRef} className="calendar-description" />;
 }
 
 function KnowledgePage({ state, updateState, notify }: EmployeeProps) {

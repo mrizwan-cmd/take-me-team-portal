@@ -4806,6 +4806,15 @@ p {
 .project-views select { background: rgb(255 255 255 / 16%); border: 1px solid rgb(255 255 255 / 26%); border-radius: 8px; color: #fff; font-size: 12px; font-weight: 700; min-height: 34px; padding: 0 28px 0 10px; }
 .project-views select option { color: var(--ink); }
 .project-views select.active { background: #fff; color: #075c7c; }
+.calendar-description { color: var(--ink); line-height: 1.55; overflow-wrap: anywhere; }
+.calendar-description > :first-child { margin-top: 0; }
+.calendar-description > :last-child { margin-bottom: 0; }
+.calendar-description p { margin: 0 0 10px; }
+.calendar-description ul, .calendar-description ol { margin: 8px 0 10px; padding-left: 20px; }
+.calendar-description li + li { margin-top: 4px; }
+.calendar-description a { color: var(--blue-dark); font-weight: 650; }
+.calendar-description blockquote { border-left: 3px solid var(--line); color: var(--muted); margin: 10px 0; padding-left: 12px; }
+.calendar-description pre { background: var(--soft); border-radius: 8px; overflow-x: auto; padding: 10px; white-space: pre-wrap; }
 
 @keyframes surface-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } }
 @keyframes panel-enter { from { opacity: 0; transform: translateX(18px); } }
