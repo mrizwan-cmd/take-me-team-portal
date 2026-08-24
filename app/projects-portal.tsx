@@ -147,12 +147,15 @@ export default function ProjectsPortal({ state, updateState, notify }: Props) {
         </div>
         <div className="project-toolbar">
           <div className="project-views">
-            {(["Board", "Table", "Calendar", "Timeline", "Dashboard", "Activity"] as View[]).map(item => (
+            {(["Board", "Table", "Calendar", "Timeline"] as View[]).map(item => (
               <button key={item} className={view === item ? "active" : ""} onClick={() => setView(item)}>
                 <i><SvgIcon name={viewIconName(item)} size={14} /></i>
                 <span>{item}</span>
               </button>
             ))}
+            <select className={["Dashboard", "Activity"].includes(view) ? "active" : ""} aria-label="Project insights" value={["Dashboard", "Activity"].includes(view) ? view : ""} onChange={event => event.target.value && setView(event.target.value as View)}>
+              <option value="">Insights</option><option value="Dashboard">Dashboard</option><option value="Activity">Activity</option>
+            </select>
           </div>
           <div className="project-actions">
             <button onClick={() => setShowAutomation(true)}>⚡ Automation</button>

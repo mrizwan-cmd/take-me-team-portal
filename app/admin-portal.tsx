@@ -10,6 +10,10 @@ type AdminProps = { page: string; state: PortalState; updateState: UpdatePortal;
 
 export default function AdminPortal(props: AdminProps) {
   if (props.page === "Overview") return <AdminOverview {...props} />;
+  if (props.page === "Organisation") return <AdminHub {...props} title="Organisation" text="Manage people, access and the structure of Take Me." items={[["People & access", "Employee accounts, roles and permissions", "people"], ["Departments", "Teams, reporting lines and ownership", "settings"]]} />;
+  if (props.page === "Workflows") return <AdminHub {...props} title="Workflows" text="Configure how work moves through the company." items={[["Forms & workflows", "Request forms and approval rules", "requests"], ["Purchase orders", "Purchasing controls and approvals", "requests"], ["Feature controls", "Choose the modules employees can use", "projects"], ["Project management", "Templates, boards and project defaults", "projects"]]} />;
+  if (props.page === "Content & communication") return <AdminHub {...props} title="Content & communication" text="Keep company information and updates clear and current." items={[["Content", "Knowledge, news and document settings", "knowledge"], ["Notifications", "Company notification defaults", "bell"]]} />;
+  if (props.page === "Security & audit") return <AdminHub {...props} title="Security & audit" text="Review protection, access policy and recorded activity." items={[["Security", "Session and company access policy", "lock"], ["Audit log", "Review significant administrative activity", "documents"]]} />;
   if (props.page === "People & access") return <PeopleAccess {...props} />;
   if (props.page === "Departments") return <Departments {...props} />;
   if (props.page === "Forms & workflows") return <Workflows {...props} />;
@@ -21,6 +25,17 @@ export default function AdminPortal(props: AdminProps) {
   if (props.page === "Integrations") return <Integrations {...props} />;
   if (props.page === "Security") return <SecuritySettings {...props} />;
   return <AuditLog {...props} />;
+}
+
+function AdminHub({ title, text, items, navigate }: AdminProps & { title: string; text: string; items: string[][] }) {
+  return <div className="page admin-page admin-hub-page">
+    <PageIntro eyebrow="ADMINISTRATION" title={title} text={text} />
+    <div className="admin-hub-grid">
+      {items.map(([name, description, icon]) => <button key={name} onClick={() => navigate(name)}>
+        <i><SvgIcon name={icon} size={22} /></i><span><b>{name}</b><small>{description}</small></span><em>Open →</em>
+      </button>)}
+    </div>
+  </div>;
 }
 
 const setting = (updateState: UpdatePortal, key: keyof AdminSettings, value: string | boolean) => updateState(current => ({ ...current, adminSettings: { ...current.adminSettings, [key]: value } }));

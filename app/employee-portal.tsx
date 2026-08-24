@@ -43,6 +43,8 @@ export default function EmployeePortal(props: EmployeeProps) {
   switch (props.page) {
     case "Home":
       return <HomePage {...props} />;
+    case "Work":
+      return <WorkHub {...props} />;
     case "Action inbox":
       return <ActionInbox {...props} />;
     case "Tasks":
@@ -61,6 +63,8 @@ export default function EmployeePortal(props: EmployeeProps) {
       return <RequestsPage {...props} />;
     case "Calendar":
       return <CalendarPage {...props} />;
+    case "Resources":
+      return <ResourcesHub {...props} />;
     case "Knowledge":
       return <KnowledgePage {...props} />;
     case "Documents":
@@ -73,6 +77,42 @@ export default function EmployeePortal(props: EmployeeProps) {
     default:
       return <HomePage {...props} />;
   }
+}
+
+function WorkHub({ state, navigate, openCreate }: EmployeeProps) {
+  const pendingApprovals = state.approvals.filter(item => item.status === "Pending");
+  const openTasks = state.tasks.filter(item => item.status !== "Done");
+  const activeRequests = state.requests.filter(item => !["Approved", "Rejected", "Complete", "Completed"].includes(item.status));
+  const pendingLeave = state.leave.filter(item => item.status === "Pending");
+  const workAreas = [
+    { title: "Decisions", detail: "Approvals waiting for you", count: pendingApprovals.length, page: "Action inbox", icon: "check", action: "Review approvals" },
+    { title: "My tasks", detail: "Assigned work still open", count: openTasks.length, page: "Tasks", icon: "tasks", action: "Open tasks" },
+    { title: "Requests", detail: "Requests still in progress", count: activeRequests.length, page: "Requests", icon: "requests", action: "Track requests" },
+    { title: "Leave", detail: "Time off and availability", count: pendingLeave.length, page: "Leave", icon: "leave", action: "Manage leave" },
+  ];
+  return <div className="page work-hub-page">
+    <PageIntro eyebrow="MY WORK" title="Everything requiring your attention" text="Decisions, tasks, requests and leave are brought together in one focused workspace." action={<button className="primary" onClick={() => openCreate("task")}>Add task</button>} />
+    <section className="attention-summary" aria-label="Work summary">
+      <div><span>{pendingApprovals.length + openTasks.length + activeRequests.length}</span><p><b>Open items</b><small>Across your work</small></p></div>
+      <div><span>{pendingApprovals.length}</span><p><b>Need a decision</b><small>Review these first</small></p></div>
+      <div><span>{pendingLeave.length}</span><p><b>Leave requests</b><small>Awaiting an outcome</small></p></div>
+    </section>
+    <div className="work-hub-grid">
+      {workAreas.map(area => <button key={area.page} className="work-hub-card" onClick={() => navigate(area.page)}>
+        <i><SvgIcon name={area.icon} size={20} /></i><span><b>{area.title}</b><small>{area.detail}</small></span><strong>{area.count}</strong><em>{area.action} →</em>
+      </button>)}
+    </div>
+  </div>;
+}
+
+function ResourcesHub({ state, navigate }: EmployeeProps) {
+  return <div className="page resources-hub-page">
+    <PageIntro eyebrow="RESOURCES" title="Find trusted company information" text="Search guidance and documents without deciding which system holds them first." />
+    <div className="resource-entry-grid">
+      <button onClick={() => navigate("Knowledge")}><i><SvgIcon name="knowledge" size={24} /></i><span><b>Knowledge</b><small>{state.articles.length} guides, policies and answers</small></span><em>Browse knowledge →</em></button>
+      <button onClick={() => navigate("Documents")}><i><SvgIcon name="documents" size={24} /></i><span><b>Documents</b><small>{state.documents.length} shared company files</small></span><em>Browse documents →</em></button>
+    </div>
+  </div>;
 }
 
 function HomePage({
@@ -247,6 +287,23 @@ function HomePage({
           </div>
         </div>
       </div>
+      {hasCurrentWork && <section className="home-focus-grid" aria-label="Your priorities today">
+        <div className="focus-surface">
+          <header><div><p className="eyebrow">NEEDS YOUR ATTENTION</p><h2>Start with what matters</h2></div><button className="text-button" onClick={() => navigate("Work")}>Open all work →</button></header>
+          <div className="focus-list">
+            {state.approvals.filter(item => item.status === "Pending").slice(0, 2).map(item => <button key={item.id} onClick={() => navigate("Action inbox")}><i className="focus-urgent"><SvgIcon name="check" size={16} /></i><span><b>{item.title}</b><small>Approval · Decision required</small></span><em>Review</em></button>)}
+            {state.tasks.filter(item => item.status !== "Done").slice(0, 3).map(item => <button key={item.id} onClick={() => navigate("Tasks")}><i><SvgIcon name="tasks" size={16} /></i><span><b>{item.title}</b><small>{item.due ? `Due ${item.due}` : "Open task"}</small></span><em>Open</em></button>)}
+            {!pending && !dueTasks && <p className="focus-empty">Nothing needs a decision right now.</p>}
+          </div>
+        </div>
+        <div className="focus-surface today-agenda">
+          <header><div><p className="eyebrow">TODAY</p><h2>Your agenda</h2></div><button className="text-button" onClick={() => navigate("Calendar")}>Calendar →</button></header>
+          <div className="focus-list">
+            {todayEvents.slice(0, 4).map(event => <button key={event.id} onClick={() => navigate("Calendar")}><time>{event.start}</time><span><b>{event.title}</b><small>{event.location || "Calendar event"}</small></span></button>)}
+            {!todayEvents.length && <div className="agenda-empty"><SvgIcon name="calendar" size={20} /><span><b>Your day is clear</b><small>No meetings are scheduled.</small></span></div>}
+          </div>
+        </div>
+      </section>}
       {!hasCurrentWork && state.dataMode === "operational" && (
         <section
           className="home-empty-state"
@@ -275,7 +332,8 @@ function HomePage({
           </div>
         </section>
       )}
-      <div className="dashboard-grid">
+      <div className="section-heading"><div><p className="eyebrow">YOUR WORKSPACE</p><h2>Everything else</h2></div></div>
+      <div className="dashboard-grid home-secondary-grid">
         {state.widgets
           .filter((id) => id !== "status")
           .map((id) => (
@@ -684,6 +742,15 @@ function ActionInbox({ state, updateState, notify }: EmployeeProps) {
 
 function TasksPage({ state, updateState, openCreate, notify }: EmployeeProps) {
   const [filter, setFilter] = useState("Open");
+  useEffect(() => {
+    const record = new URLSearchParams(window.location.search).get("record");
+    if (!record || !state.tasks.some(task => task.id === record)) return;
+    const routeTimer = window.setTimeout(() => {
+      setFilter("All");
+      window.setTimeout(() => document.getElementById(`task-${record}`)?.scrollIntoView({ block: "center" }), 0);
+    }, 0);
+    return () => window.clearTimeout(routeTimer);
+  }, [state.tasks]);
   const tasks = state.tasks.filter(
     (task) =>
       filter === "All" ||
@@ -731,7 +798,7 @@ function TasksPage({ state, updateState, openCreate, notify }: EmployeeProps) {
       </div>
       <div className="task-board">
         {tasks.map((task) => (
-          <article className="card task-card" key={task.id}>
+          <article id={`task-${task.id}`} className="card task-card" key={task.id}>
             <button
               className={`task-check ${task.status === "Done" ? "done" : ""}`}
               aria-label={`Mark ${task.title} ${task.status === "Done" ? "open" : "done"}`}
@@ -972,7 +1039,7 @@ function CalendarPage({
   openCreate,
   notify,
 }: EmployeeProps) {
-  const [view, setView] = useState("Week");
+  const [view, setView] = useState("Agenda");
   const [selected, setSelected] = useState<EventItem | null>(null);
   const [editing, setEditing] = useState(false);
   const [syncing, setSyncing] = useState(false);

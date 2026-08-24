@@ -10,14 +10,19 @@ import { addDays, formatDateTime, localDateInput, makeId, type CreateAttachment,
 import { Modal, SvgIcon, Toggle } from "./portal-ui";
 import { usePortalState } from "./use-portal-state";
 
+const employeeRoutes: [string, string, FeatureKey?][] = [
+  ["Home", "home"], ["Work", "check"], ["Action inbox", "check", "actionInbox"], ["Tasks", "tasks"], ["Projects", "projects"], ["People", "people"], ["Requests", "requests"],
+  ["Calendar", "calendar"], ["Resources", "knowledge"], ["Knowledge", "knowledge"], ["Documents", "documents"], ["Chat", "chat"], ["Leave", "leave", "leave"],
+];
 const employeeNav: [string, string, FeatureKey?][] = [
-  ["Home", "home"], ["Action inbox", "check", "actionInbox"], ["Tasks", "tasks"], ["Projects", "projects"], ["People", "people"], ["Requests", "requests"],
-  ["Calendar", "calendar"], ["Knowledge", "knowledge"], ["Documents", "documents"], ["Chat", "chat"],
-  ["Leave", "leave", "leave"],
+  ["Home", "home"], ["Work", "check"], ["Projects", "projects"], ["Calendar", "calendar"], ["People", "people"], ["Resources", "knowledge"], ["Chat", "chat"],
+];
+const adminRoutes: [string, string][] = [
+  ["Overview", "home"], ["Organisation", "people"], ["People & access", "people"], ["Departments", "settings"], ["Workflows", "requests"], ["Forms & workflows", "requests"], ["Purchase orders", "requests"],
+  ["Feature controls", "projects"], ["Project management", "projects"], ["Content & communication", "knowledge"], ["Content", "knowledge"], ["Notifications", "bell"], ["Integrations", "link"], ["Security & audit", "lock"], ["Security", "lock"], ["Audit log", "documents"],
 ];
 const adminNav: [string, string][] = [
-  ["Overview", "home"], ["People & access", "people"], ["Departments", "settings"], ["Forms & workflows", "requests"], ["Purchase orders", "requests"],
-  ["Feature controls", "projects"], ["Project management", "projects"], ["Content", "knowledge"], ["Notifications", "bell"], ["Integrations", "link"], ["Security", "lock"], ["Audit log", "documents"],
+  ["Overview", "home"], ["Organisation", "people"], ["Workflows", "requests"], ["Content & communication", "knowledge"], ["Integrations", "link"], ["Security & audit", "lock"],
 ];
 
 type DeferredInstall = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
@@ -68,7 +73,7 @@ export default function Portal() {
       const params = new URLSearchParams(window.location.search);
       const requestedPage = params.get("page");
       setLoginPreview(params.get("preview") === "login");
-      const initialPage = requestedPage && employeeNav.some(item => item[0] === requestedPage) ? requestedPage : "Home";
+      const initialPage = requestedPage && employeeRoutes.some(item => item[0] === requestedPage) ? requestedPage : "Home";
       const requestedCreate = params.get("create");
       setPage(initialPage);
       if (requestedCreate && ["request", "event", "conversation", "task", "leave"].includes(requestedCreate)) setCreateKind(requestedCreate);
@@ -93,10 +98,10 @@ export default function Portal() {
     const routeTimer = window.setTimeout(() => {
       if (params.get("admin") === "1" && identity.isAdmin) {
         setAdmin(true);
-        setPage(requested && adminNav.some(item => item[0] === requested) ? requested : "Overview");
+        setPage(requested && adminRoutes.some(item => item[0] === requested) ? requested : "Overview");
       } else {
         setAdmin(false);
-        setPage(requested && employeeNav.some(item => item[0] === requested) ? requested : "Home");
+        setPage(requested && employeeRoutes.some(item => item[0] === requested) ? requested : "Home");
       }
       setRouteReady(true);
     }, 0);
@@ -194,7 +199,7 @@ export default function Portal() {
               <button key={item[0]} className={page === item[0] ? "active" : ""} onClick={() => navigate(item[0])}>
                 <i><SvgIcon name={item[1]} size={18} /></i>
                 <span>{item[0]}</span>
-                {item[0] === "Action inbox" && pending > 0 && <mark>{pending}</mark>}
+                {item[0] === "Work" && pending > 0 && <mark>{pending}</mark>}
               </button>
             ))
           )}
@@ -303,7 +308,7 @@ export default function Portal() {
               <i><SvgIcon name="home" size={18} /></i>
               <span>Overview</span>
             </button>
-            <button className={page === "People & access" ? "active" : ""} onClick={() => navigate("People & access")}>
+            <button className={["Organisation", "People & access", "Departments"].includes(page) ? "active" : ""} onClick={() => navigate("Organisation")}>
               <i><SvgIcon name="people" size={18} /></i>
               <span>People</span>
             </button>
@@ -311,9 +316,9 @@ export default function Portal() {
               <span className="create-bubble"><SvgIcon name="plus" size={20} /></span>
               <span>Create</span>
             </button>
-            <button className={page === "Feature controls" ? "active" : ""} onClick={() => navigate("Feature controls")}>
+            <button className={["Workflows", "Forms & workflows", "Purchase orders", "Feature controls", "Project management"].includes(page) ? "active" : ""} onClick={() => navigate("Workflows")}>
               <i><SvgIcon name="projects" size={18} /></i>
-              <span>Features</span>
+              <span>Workflows</span>
             </button>
             <button onClick={() => setMenuOpen(true)}>
               <i><SvgIcon name="menu" size={18} /></i>
@@ -326,9 +331,9 @@ export default function Portal() {
               <i><SvgIcon name="home" size={18} /></i>
               <span>Home</span>
             </button>
-            <button className={page === "Projects" ? "active" : ""} onClick={() => navigate("Projects")}>
-              <i><SvgIcon name="projects" size={18} /></i>
-              <span>Projects</span>
+            <button className={["Work", "Action inbox", "Tasks", "Requests", "Leave"].includes(page) ? "active" : ""} onClick={() => navigate("Work")}>
+              <i><SvgIcon name="check" size={18} /></i>
+              <span>Work</span>
             </button>
             <button className="create-tab" onClick={() => setCreateKind("")} aria-label="Create something new">
               <span className="create-bubble"><SvgIcon name="plus" size={20} /></span>
@@ -375,14 +380,22 @@ function CommandPalette({ state, query, setQuery, close, navigate, openCreate, o
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const items = useMemo(() => {
-    const pages = employeeNav.map(item => ({ title: item[0], detail: "Open portal page", icon: item[1], action: () => { navigate(item[0]); close(); } }));
+    const openRecord = (page: string, record: string) => () => {
+      navigate(page);
+      const url = new URL(window.location.href);
+      url.searchParams.set("record", record);
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}`);
+      close();
+    };
+    const pages = employeeRoutes.map(item => ({ title: item[0], detail: "Open portal page", icon: item[1], action: () => { navigate(item[0]); close(); } }));
     const records = [
-      ...state.requests.map(item => ({ title: item.title, detail: `${item.id} · Request`, icon: "requests", action: () => { navigate("Requests"); close(); } })),
+      ...state.requests.map(item => ({ title: item.title, detail: `${item.id} · Request`, icon: "requests", action: openRecord("Requests", item.id) })),
       ...state.documents.map(item => ({ title: item.name, detail: `${item.folder} · Document`, icon: "documents", action: () => { navigate("Documents"); close(); } })),
       ...state.articles.map(item => ({ title: item.title, detail: `${item.category} · Knowledge`, icon: "knowledge", action: () => { navigate("Knowledge"); close(); } })),
       ...state.employees.map(item => ({ title: item.name, detail: `${item.jobTitle || "Employee"} · ${item.email}`, icon: "people", action: () => { navigate("People"); close(); } })),
-      ...state.conversations.map(item => ({ title: item.name, detail: "Direct message", icon: "chat", action: () => { navigate("Chat"); close(); } })),
-      ...state.tasks.map(item => ({ title: item.title, detail: `${item.status} · Task`, icon: "tasks", action: () => { navigate("Tasks"); close(); } })),
+      ...state.conversations.map(item => ({ title: item.name, detail: "Direct message", icon: "chat", action: openRecord("Chat", item.id) })),
+      ...state.tasks.map(item => ({ title: item.title, detail: `${item.status} · Task`, icon: "tasks", action: openRecord("Tasks", item.id) })),
+      ...state.projectBoards.flatMap(board => board.cards.filter(card => !card.archived).map(card => ({ title: card.title, detail: `${board.title} · Project card`, icon: "projects", action: openRecord("Projects", card.id) }))),
     ];
     const commands = [
       ["Create a request", "request", "requests"],
@@ -790,37 +803,28 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
           </div>
         )}
         {errors.time && <small className="field-error" role="alert">{errors.time}</small>}
-        {(kind === "request" || kind === "leave") && (
+        {(kind === "leave" || (kind === "request" && ["Purchase order", "Expense"].includes(type))) && (
           <label>
             {kind === "leave" ? "Number of days" : "Amount, if applicable"}
             <input inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} placeholder={kind === "leave" ? "1" : "0.00"} />
             {errors.amount && <small className="field-error" role="alert">{errors.amount}</small>}
           </label>
         )}
-        {(kind === "event" || kind === "task") && (
-          <label>
-            {kind === "task" ? "Assign to" : "Guests"}
-            <input value={people} onChange={event => setPeople(event.target.value)} placeholder="Names or @takeme.taxi addresses, separated by commas" />
-            {!!state.preferences.recentEmployeeEmails.length && <small>Recent: {state.preferences.recentEmployeeEmails.slice(0, 3).map(email => <button type="button" className="inline-choice" key={email} onClick={() => setPeople(email)}>{email.split("@")[0]}</button>)}</small>}
-          </label>
-        )}
-        <label>
-          {kind === "conversation" ? "First message" : "Details"}
-          <textarea value={details} onChange={event => setDetails(event.target.value)} placeholder="Add useful details" />
-        </label>
-        {kind === "event" && (
-          <label className="check-row">
-            <input type="checkbox" checked={meet} onChange={event => setMeet(event.target.checked)} /> Add Google Meet video call
-          </label>
-        )}
-        {kind !== "conversation" && (
-          <div className="attachment-dropzone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); setFiles(current => [...current, ...Array.from(event.dataTransfer.files)].slice(0, 6)); }}>
-            <b>Attachments</b>
-            <span>Drag files here or choose up to six files.</span>
-            <input type="file" multiple onChange={event => setFiles(current => [...current, ...Array.from(event.target.files || [])].slice(0, 6))} />
-            {!!files.length && <ul>{files.map((file, index) => <li key={`${file.name}-${index}`}>{file.name}<button type="button" aria-label={`Remove ${file.name}`} onClick={() => setFiles(current => current.filter((_, itemIndex) => itemIndex !== index))}>×</button></li>)}</ul>}
-            {errors.attachments && <small className="field-error" role="alert">{errors.attachments}</small>}
-          </div>
+        {kind === "conversation" ? <label>First message<textarea value={details} onChange={event => setDetails(event.target.value)} placeholder="Write a helpful first message" /></label> : (
+          <details className="advanced-details">
+            <summary>Add people, details or attachments</summary>
+            <div>
+              {(kind === "event" || kind === "task") && <label>{kind === "task" ? "Assign to" : "Guests"}<input value={people} onChange={event => setPeople(event.target.value)} placeholder="Names or @takeme.taxi addresses, separated by commas" />{!!state.preferences.recentEmployeeEmails.length && <small>Recent: {state.preferences.recentEmployeeEmails.slice(0, 3).map(email => <button type="button" className="inline-choice" key={email} onClick={() => setPeople(email)}>{email.split("@")[0]}</button>)}</small>}</label>}
+              <label>Details<textarea value={details} onChange={event => setDetails(event.target.value)} placeholder="Add useful context" /></label>
+              {kind === "event" && <label className="check-row"><input type="checkbox" checked={meet} onChange={event => setMeet(event.target.checked)} /> Add Google Meet video call</label>}
+              <div className="attachment-dropzone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); setFiles(current => [...current, ...Array.from(event.dataTransfer.files)].slice(0, 6)); }}>
+                <b>Attachments</b><span>Drag files here or choose up to six files.</span>
+                <input type="file" multiple onChange={event => setFiles(current => [...current, ...Array.from(event.target.files || [])].slice(0, 6))} />
+                {!!files.length && <ul>{files.map((file, index) => <li key={`${file.name}-${index}`}>{file.name}<button type="button" aria-label={`Remove ${file.name}`} onClick={() => setFiles(current => current.filter((_, itemIndex) => itemIndex !== index))}>×</button></li>)}</ul>}
+                {errors.attachments && <small className="field-error" role="alert">{errors.attachments}</small>}
+              </div>
+            </div>
+          </details>
         )}
         {kind === "request" && (
           <label className="check-row">
@@ -834,6 +838,7 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
           <button type="button" className="secondary" onClick={close}>Cancel</button>
           <button type="submit" className="primary" disabled={uploading || (kind === "conversation" && !people)} title={kind === "conversation" && !people ? "Select an active employee first" : uploading ? "Wait for attachments to finish uploading" : ""}>{uploading ? "Uploading…" : draft ? "Save draft" : kind === "conversation" ? "Start chat" : `Create ${kind}`}</button>
         </div>
+        {(uploading || (kind === "conversation" && !people)) && <p className="disabled-explanation" role="status">{uploading ? "Attachments are still uploading. This action will become available when they finish." : "Select an active employee before starting the conversation."}</p>}
       </form>
     </Modal>
   );
@@ -843,6 +848,24 @@ function UtilityPanel({ type, state, updateState, close, navigate, notify, resta
   const [group, setGroup] = useState("All");
   const [showSettings, setShowSettings] = useState(false);
   const [undoReadIds, setUndoReadIds] = useState<string[]>([]);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (type !== "notifications") return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const panel = panelRef.current;
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); close(); return; }
+      if (event.key !== "Tab") return;
+      const focusable = [...(panel?.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])") || [])];
+      if (!focusable.length) { event.preventDefault(); panel?.focus(); return; }
+      const first = focusable[0]; const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    panel?.addEventListener("keydown", handleKey);
+    const focusTimer = window.setTimeout(() => panel?.querySelector<HTMLElement>("button")?.focus(), 30);
+    return () => { window.clearTimeout(focusTimer); panel?.removeEventListener("keydown", handleKey); previous?.focus(); };
+  }, [close, type]);
   const groups = ["All", ...Array.from(new Set(state.notifications.map(item => item.group)))];
   const destination: Record<string, string> = { Approvals: "Action inbox", Calendar: "Calendar", Leave: "Leave", Requests: "Requests" };
 
@@ -880,7 +903,7 @@ function UtilityPanel({ type, state, updateState, close, navigate, notify, resta
   };
 
   return (
-    <div className="utility-panel notification-panel" role="dialog" aria-label="Notifications">
+    <div ref={panelRef} tabIndex={-1} className="utility-panel notification-panel" role="dialog" aria-modal="true" aria-label="Notifications">
       <header>
         <div>
           <h2>Notifications</h2>

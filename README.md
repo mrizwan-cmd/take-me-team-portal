@@ -35,6 +35,14 @@ The latest hardening pass added participant-scoped direct-message realtime deliv
 - Employees can set an away-until date, choose a delegate, and select coverage for approvals, projects, request responses, and urgent notifications; current coverage appears in the profile and Leave area.
 - Admin pages keep working controls prominent and group future connectors under Planned integrations instead of presenting disabled dead ends.
 
+### Unified portal experience
+
+- Employee navigation is organised around Home, Work, Projects, Calendar, People, Resources and Chat. Direct pages such as approvals, tasks, requests, leave, knowledge and documents remain available through their hubs, search and deep links.
+- Administration is grouped by responsibility: Organisation, Workflows, Content and communication, Integrations, and Security and audit.
+- Home presents attention-required work and today’s agenda before secondary widgets.
+- Large text, high contrast and reduced motion preferences have complete interface behavior, including automatic operating-system reduced-motion support.
+- Optional form details use progressive disclosure, project cards open as responsive side sheets, and direct search results preserve exact-record navigation.
+
 ## Experience and design
 
 - Official Take Me branding and primary colour
