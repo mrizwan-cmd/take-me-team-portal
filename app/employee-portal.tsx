@@ -39,6 +39,17 @@ type EmployeeProps = {
   realtime: RealtimeControls;
 };
 
+type GoogleCalendarEventPayload = {
+  id: string; summary?: string; start?: { dateTime?: string; date?: string }; end?: { dateTime?: string; date?: string };
+  location?: string; description?: string; attendees?: Array<{ email?: string }>; hangoutLink?: string; htmlLink?: string;
+  conferenceData?: { entryPoints?: Array<{ entryPointType?: string; uri?: string }> };
+};
+
+function googleMeetLink(item: GoogleCalendarEventPayload) {
+  const candidate = item.hangoutLink || item.conferenceData?.entryPoints?.find(entry => entry.entryPointType === "video")?.uri || "";
+  try { const url = new URL(candidate); return url.protocol === "https:" && url.hostname === "meet.google.com" ? url.href : ""; } catch { return ""; }
+}
+
 export default function EmployeePortal(props: EmployeeProps) {
   switch (props.page) {
     case "Home":
@@ -1047,6 +1058,20 @@ function CalendarPage({
   const [editTitle, setEditTitle] = useState("");
   const [editDate, setEditDate] = useState("");
   useEffect(() => {
+    const missingLinks = state.events.filter(event => event.googleId && event.meet && !event.meetLink);
+    if (!state.adminSettings.googleConnected || !missingLinks.length) return;
+    const controller = new AbortController();
+    void fetch("/api/google/calendar", { signal: controller.signal }).then(async response => {
+      if (!response.ok) return;
+      const result = await response.json() as { items?: GoogleCalendarEventPayload[] };
+      const links = new Map((result.items || []).map(item => [item.id, googleMeetLink(item)]).filter((entry): entry is [string, string] => Boolean(entry[1])));
+      if (!links.size) return;
+      updateState(current => ({ ...current, events: current.events.map(event => event.googleId && links.has(event.googleId) ? { ...event, meetLink: links.get(event.googleId) } : event) }));
+      setSelected(current => current?.googleId && links.has(current.googleId) ? { ...current, meetLink: links.get(current.googleId) } : current);
+    }).catch(error => { if (!(error instanceof DOMException && error.name === "AbortError")) console.warn("Could not refresh Google Meet links"); });
+    return () => controller.abort();
+  }, [state.adminSettings.googleConnected, state.events, updateState]);
+  useEffect(() => {
     const record = new URLSearchParams(window.location.search).get("record");
     const event = state.events.find(item => item.id === record);
     if (event) {
@@ -1105,17 +1130,7 @@ function CalendarPage({
     try {
       const response = await fetch("/api/google/calendar");
       const result = (await response.json()) as {
-        items?: Array<{
-          id: string;
-          summary?: string;
-          start?: { dateTime?: string; date?: string };
-          end?: { dateTime?: string; date?: string };
-          location?: string;
-          description?: string;
-          attendees?: Array<{ email?: string }>;
-          hangoutLink?: string;
-          htmlLink?: string;
-        }>;
+        items?: GoogleCalendarEventPayload[];
         error?: string;
       };
       if (!response.ok)
@@ -1123,6 +1138,7 @@ function CalendarPage({
       const imported = (result.items || []).map((item) => {
         const startValue = item.start?.dateTime || item.start?.date || "";
         const endValue = item.end?.dateTime || item.end?.date || startValue;
+        const meetLink = googleMeetLink(item);
         return {
           id: `GOOGLE-${item.id}`,
           googleId: item.id,
@@ -1132,14 +1148,14 @@ function CalendarPage({
             ? startValue.slice(11, 16)
             : "All day",
           end: endValue.includes("T") ? endValue.slice(11, 16) : "All day",
-          location: item.location || (item.hangoutLink ? "Google Meet" : ""),
-          meet: Boolean(item.hangoutLink),
+          location: item.location || (meetLink ? "Google Meet" : ""),
+          meet: Boolean(meetLink),
           guests: (item.attendees || []).flatMap((guest) =>
             guest.email ? [guest.email] : [],
           ),
           notes: item.description || "",
-          webLink: item.htmlLink || item.hangoutLink,
-          meetLink: item.hangoutLink,
+          webLink: item.htmlLink || meetLink,
+          meetLink,
         } as EventItem;
       });
       updateState((current) => ({
