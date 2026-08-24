@@ -2167,7 +2167,11 @@ function ChatPage({
     ) || [];
   const typingEvent =
     realtime.latestEvent?.type === "chat.typing" &&
-    realtime.latestEvent.conversationId === active?.id
+    realtime.latestEvent.conversationId === active?.id &&
+    Boolean(realtime.latestEvent.actor?.email) &&
+    active.members.some(
+      (email) => email.toLowerCase() === realtime.latestEvent?.actor?.email?.toLowerCase(),
+    )
       ? realtime.latestEvent
       : null;
   const typingName = remoteTypingName;
@@ -2243,11 +2247,22 @@ function ChatPage({
         Array.from(processedRealtimeEvents.current).slice(-100),
       );
     }
+    const eventConversation = event.conversationId
+      ? state.conversations.find((conversation) => conversation.id === event.conversationId)
+      : undefined;
+    const actorEmail = event.actor?.email?.toLowerCase();
+    const authorizedChatEvent = Boolean(
+      eventConversation &&
+      actorEmail &&
+      eventConversation.members.some((email) => email.toLowerCase() === actorEmail) &&
+      eventConversation.members.some((email) => email.toLowerCase() === state.profile.email.toLowerCase()),
+    );
     if (
       event.type === "chat.receipt" &&
       event.messageId &&
       event.conversationId &&
-      event.status
+      event.status &&
+      authorizedChatEvent
     ) {
       updateState((current) => ({
         ...current,
@@ -2270,6 +2285,8 @@ function ChatPage({
       event.type !== "chat.message" ||
       !event.messageId ||
       !event.conversationId ||
+      !eventConversation ||
+      !authorizedChatEvent ||
       event.actor?.id === selfEmployee?.googleId ||
       (!selfEmployee?.googleId && event.actor?.name === state.profile.name)
     )
@@ -2278,6 +2295,7 @@ function ChatPage({
       type: "chat.receipt",
       conversationId: event.conversationId,
       messageId: event.messageId,
+      participants: eventConversation.members,
       status:
         document.visibilityState === "visible" &&
         event.conversationId === active?.id
@@ -2297,7 +2315,9 @@ function ChatPage({
   }, [
     active?.id,
     realtime,
+    state.conversations,
     state.preferences.browserNotifications,
+    state.profile.email,
     state.profile.name,
     selfEmployee?.googleId,
     updateState,
@@ -2327,6 +2347,7 @@ function ChatPage({
     realtime.send({
       type: "chat.typing",
       conversationId: active.id,
+      participants: active.members,
       active: Boolean(value.trim()),
     });
     if (typingTimer.current) window.clearTimeout(typingTimer.current);
@@ -2335,6 +2356,7 @@ function ChatPage({
         realtime.send({
           type: "chat.typing",
           conversationId: active.id,
+          participants: active.members,
           active: false,
         }),
       1800,
@@ -2395,10 +2417,12 @@ function ChatPage({
       type: "chat.message",
       conversationId: active.id,
       messageId: item.id,
+      participants: active.members,
     });
     realtime.send({
       type: "chat.typing",
       conversationId: active.id,
+      participants: active.members,
       active: false,
     });
   };

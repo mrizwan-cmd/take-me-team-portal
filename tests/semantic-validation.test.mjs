@@ -20,6 +20,8 @@ test("high-change features persist independently with conflict detection", () =>
   assert.match(featureRoute, /portal_feature_state/);
   assert.match(featureRoute, /feature_revision_conflict/);
   assert.match(featureRoute, /Administrator access is required/);
+  assert.match(featureRoute, /env\.DB\.batch\(statements, \{ requireSingleChange: true \}\)/u);
+  assert.match(featureRoute, /DatabaseConflictError/u);
   assert.match(stateHook, /\/api\/portal-state\/features/);
   assert.match(stateHook, /featureRevisions/);
 });

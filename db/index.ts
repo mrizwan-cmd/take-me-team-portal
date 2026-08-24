@@ -18,6 +18,16 @@ export type DatabaseResult<T = QueryRow> = {
   meta: { changes: number };
 };
 
+export class DatabaseConflictError extends Error {
+  readonly statementIndex: number;
+
+  constructor(statementIndex: number) {
+    super("A conditional database write did not match the expected revision");
+    this.name = "DatabaseConflictError";
+    this.statementIndex = statementIndex;
+  }
+}
+
 let driverPromise: Promise<Driver> | null = null;
 
 async function createDriver(): Promise<Driver> {
@@ -119,11 +129,15 @@ export const database = {
   prepare(query: string) {
     return new DatabaseStatement(query);
   },
-  async batch(statements: DatabaseStatement[]) {
+  async batch(statements: DatabaseStatement[], options?: { requireSingleChange?: boolean }) {
     const driver = await getDriver();
     return driver.transaction(async transaction => {
       const results: DatabaseResult[] = [];
-      for (const statement of statements) results.push(await statement.execute(transaction));
+      for (const [index, statement] of statements.entries()) {
+        const result = await statement.execute(transaction);
+        if (options?.requireSingleChange && result.meta.changes !== 1) throw new DatabaseConflictError(index);
+        results.push(result);
+      }
       return results;
     });
   },

@@ -44,6 +44,22 @@ function broadcast(message, except = null) {
   for (const client of clients.keys()) if (client !== except) send(client, message);
 }
 
+function chatParticipants(event, claims) {
+  if (!Array.isArray(event.participants) || typeof claims.email !== "string") return null;
+  const participants = [...new Set(event.participants.map(value => String(value).trim().toLowerCase()).filter(Boolean))];
+  const sender = claims.email.toLowerCase();
+  const domain = sender.split("@")[1];
+  if (participants.length !== 2 || !participants.includes(sender) || !domain || participants.some(email => !email.endsWith(`@${domain}`))) return null;
+  return participants;
+}
+
+function broadcastToParticipants(message, participants, except = null) {
+  for (const [client, meta] of clients) {
+    if (client === except || !participants.includes(String(meta.claims.email || "").toLowerCase())) continue;
+    send(client, message);
+  }
+}
+
 function broadcastPresence() {
   broadcast({ type: "presence.snapshot", users: snapshot(), sentAt: Date.now() });
 }
@@ -84,6 +100,7 @@ websocketServer.on("connection", (client, _request, claims) => {
     try { event = JSON.parse(String(payload)); } catch { return; }
     if (!event || typeof event.type !== "string") return;
     const actor = { id: claims.sub, name: claims.name };
+    const chatActor = { ...actor, email: claims.email };
     if (event.type === "ping") return send(client, { type: "pong", sentAt: now });
     if (event.type === "state.changed") {
       const allowed = new Set(["requests", "approvals", "conversations", "documents", "articles", "projectBoards", "projectAutomations", "adminSettings", "features", "operations", "personal"]);
@@ -91,13 +108,16 @@ websocketServer.on("connection", (client, _request, claims) => {
       return broadcast({ type: "state.changed", actor, areas, revision: Number(event.revision || 0), personalRevision: Number(event.personalRevision || 0), sentAt: now }, client);
     }
     if (event.type === "chat.typing" && typeof event.conversationId === "string" && event.conversationId.length <= 120) {
-      return broadcast({ type: "chat.typing", actor, conversationId: event.conversationId, active: Boolean(event.active), sentAt: now }, client);
+      const participants = chatParticipants(event, claims); if (!participants) return;
+      return broadcastToParticipants({ type: "chat.typing", actor: chatActor, conversationId: event.conversationId, active: Boolean(event.active), sentAt: now }, participants, client);
     }
     if (event.type === "chat.message" && typeof event.conversationId === "string" && event.conversationId.length <= 120 && typeof event.messageId === "string" && event.messageId.length <= 120) {
-      return broadcast({ type: "chat.message", actor, conversationId: event.conversationId, messageId: event.messageId, sentAt: now }, client);
+      const participants = chatParticipants(event, claims); if (!participants) return;
+      return broadcastToParticipants({ type: "chat.message", actor: chatActor, conversationId: event.conversationId, messageId: event.messageId, sentAt: now }, participants, client);
     }
     if (event.type === "chat.receipt" && typeof event.conversationId === "string" && event.conversationId.length <= 120 && typeof event.messageId === "string" && event.messageId.length <= 120 && ["delivered", "read"].includes(event.status)) {
-      return broadcast({ type: "chat.receipt", actor, conversationId: event.conversationId, messageId: event.messageId, status: event.status, sentAt: now }, client);
+      const participants = chatParticipants(event, claims); if (!participants) return;
+      return broadcastToParticipants({ type: "chat.receipt", actor: chatActor, conversationId: event.conversationId, messageId: event.messageId, status: event.status, sentAt: now }, participants, client);
     }
     if (event.type === "presence.viewing" && typeof event.area === "string" && event.area.length <= 80) {
       const resourceId = typeof event.resourceId === "string" ? event.resourceId.slice(0, 120) : "";

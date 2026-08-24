@@ -58,6 +58,23 @@ function nextMessage(socket, predicate) {
   });
 }
 
+function expectNoMessage(socket, predicate, waitMs = 500) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      socket.off("message", onMessage);
+      resolve();
+    }, waitMs);
+    const onMessage = (payload) => {
+      const message = JSON.parse(String(payload));
+      if (!predicate(message)) return;
+      clearTimeout(timer);
+      socket.off("message", onMessage);
+      reject(new Error("An unrelated employee received a private chat event"));
+    };
+    socket.on("message", onMessage);
+  });
+}
+
 test("realtime collaboration has authenticated tokens, origin checks and a polling fallback", async () => {
   const [tokenRoute, client, server, state] = await Promise.all([
     read("app/api/realtime/token/route.ts"),
@@ -83,7 +100,7 @@ test("realtime collaboration has authenticated tokens, origin checks and a polli
 });
 
 test(
-  "the Forge gateway broadcasts presence, typing and state-change signals",
+  "the Forge gateway scopes private chat signals to conversation participants",
   { timeout: 15_000 },
   async () => {
     const port = 34_000 + Math.floor(Math.random() * 1_000);
@@ -116,6 +133,7 @@ test(
     });
     let first;
     let second;
+    let unrelated;
     try {
       await ready;
       const health = await fetch(`http://127.0.0.1:${port}/health`).then(
@@ -130,24 +148,44 @@ test(
       );
       second = await openSocket(port, sign(secret, "sam", "Sam Wilson"));
       assert.equal((await presence).users.length, 2);
+      unrelated = await openSocket(port, sign(secret, "alex", "Alex Morgan"));
       const typing = nextMessage(
         second,
+        (message) => message.type === "chat.typing",
+      );
+      const notLeaked = expectNoMessage(
+        unrelated,
         (message) => message.type === "chat.typing",
       );
       first.send(
         JSON.stringify({
           type: "chat.typing",
           conversationId: "CHAT-01",
+          participants: ["muneeb@takeme.taxi", "sam@takeme.taxi"],
           active: true,
         }),
       );
       assert.deepEqual(await typing, {
         type: "chat.typing",
-        actor: { id: "muneeb", name: "Muneeb Rizwan" },
+        actor: { id: "muneeb", email: "muneeb@takeme.taxi", name: "Muneeb Rizwan" },
         conversationId: "CHAT-01",
         active: true,
         sentAt: (await typing).sentAt,
       });
+      await notLeaked;
+      const forgedEventRejected = expectNoMessage(
+        second,
+        (message) => message.type === "chat.typing" && message.conversationId === "CHAT-FORGED",
+      );
+      unrelated.send(
+        JSON.stringify({
+          type: "chat.typing",
+          conversationId: "CHAT-FORGED",
+          participants: ["muneeb@takeme.taxi", "sam@takeme.taxi"],
+          active: true,
+        }),
+      );
+      await forgedEventRejected;
       const changed = nextMessage(
         second,
         (message) => message.type === "state.changed",
@@ -165,6 +203,7 @@ test(
     } finally {
       first?.close();
       second?.close();
+      unrelated?.close();
       child.kill("SIGTERM");
     }
   },

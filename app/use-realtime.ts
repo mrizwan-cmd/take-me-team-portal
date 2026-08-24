@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export type RealtimeStatus = "live" | "connecting" | "syncing" | "offline" | "disabled";
 export type RealtimeEvent = {
   type: string;
-  actor?: { id: string; name: string };
+  actor?: { id: string; email?: string; name: string };
   conversationId?: string;
   messageId?: string;
   status?: "delivered" | "read";

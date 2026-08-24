@@ -12,10 +12,7 @@ This repository is private and intended for Take Me Group development and deploy
 
 The portal is in **pre-production validation**. The application builds successfully, passes its automated test suite, and has deployment guidance for Vercel testing and Forge production. It must not be approved for production until the checks in [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md) are complete.
 
-Two issues identified during the latest review still need correction:
-
-- Direct-message realtime events need participant-scoped delivery and server-side membership validation.
-- Multi-feature state updates need an atomic database transaction so a conflict cannot leave a partially saved request.
+The latest hardening pass added participant-scoped direct-message realtime delivery, server and client membership checks, and atomic multi-feature database updates that roll back completely when any revision conflicts.
 
 ## What the portal includes
 

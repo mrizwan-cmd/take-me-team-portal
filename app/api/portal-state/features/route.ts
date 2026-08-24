@@ -1,4 +1,5 @@
 import { env } from "@/app/api/_runtime";
+import { DatabaseConflictError } from "@/db";
 import { requirePortalUser, requireSameOrigin } from "../../_auth";
 import { featureAreas, type FeatureArea, validateArea } from "../_schema";
 
@@ -60,6 +61,7 @@ export async function PUT(request: Request) {
     if (validationError) return Response.json({ error: validationError }, { status: 400 });
   }
   const revisions: Record<string, number> = {};
+  const statements: ReturnType<typeof env.DB.prepare>[] = [];
   for (const [area, rawValue] of entries) {
     let value = operationalFeatureData(area, rawValue, employeeEmails, area === "conversations" ? auth.user.email : undefined);
     const current = await env.DB.prepare("SELECT data, updated_at FROM portal_feature_state WHERE workspace_id = ? AND area = ?").bind(workspaceId, area).first<{ data: string; updated_at: number }>();
@@ -71,13 +73,20 @@ export async function PUT(request: Request) {
       value = [...(value as unknown[]), ...others];
     }
     const next = Math.max(Date.now(), (current?.updated_at || 0) + 1);
-    if (current) {
-      const result = await env.DB.prepare("UPDATE portal_feature_state SET data = ?, updated_at = ? WHERE workspace_id = ? AND area = ? AND updated_at = ?").bind(JSON.stringify(value), next, workspaceId, area, current.updated_at).run();
-      if (!Number(result.meta?.changes || 0)) return Response.json({ error: `${area} changed in another session`, code: "feature_revision_conflict", area }, { status: 409 });
-    } else {
-      await env.DB.prepare("INSERT INTO portal_feature_state (workspace_id, area, data, updated_at) VALUES (?, ?, ?, ?)").bind(workspaceId, area, JSON.stringify(value), next).run();
-    }
+    statements.push(env.DB.prepare(`INSERT INTO portal_feature_state (workspace_id, area, data, updated_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT (workspace_id, area) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
+      WHERE portal_feature_state.updated_at = ?`)
+      .bind(workspaceId, area, JSON.stringify(value), next, current?.updated_at || 0));
     revisions[area] = next;
+  }
+  try {
+    await env.DB.batch(statements, { requireSingleChange: true });
+  } catch (error) {
+    if (!(error instanceof DatabaseConflictError)) throw error;
+    const area = entries[error.statementIndex]?.[0] || entries[0][0];
+    const current = await env.DB.prepare("SELECT updated_at FROM portal_feature_state WHERE workspace_id = ? AND area = ?").bind(workspaceId, area).first<{ updated_at: number }>();
+    return Response.json({ error: `${area} changed in another session`, code: "feature_revision_conflict", area, revision: current?.updated_at || 0 }, { status: 409 });
   }
   return Response.json({ saved: true, featureRevisions: revisions }, { headers: { "cache-control": "no-store" } });
 }

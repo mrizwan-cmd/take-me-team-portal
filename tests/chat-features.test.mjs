@@ -54,6 +54,10 @@ test("chat attachments and message events use private server contracts", async (
   assert.match(files, /canReadSharedChatFile/u);
   assert.match(files, /You do not have access to this file/u);
   assert.match(realtime, /event\.type === "chat\.message"/u);
+  assert.match(realtime, /broadcastToParticipants/u);
+  assert.match(realtime, /participants\.length !== 2/u);
+  assert.match(chat, /participants: active\.members/u);
+  assert.match(chat, /authorizedChatEvent/u);
   assert.match(schema, /message\.attachments/u);
 });
 
