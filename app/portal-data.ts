@@ -63,7 +63,7 @@ export type RequestItem = {
 };
 export type Approval = { id: string; requestId: string; title: string; requester: string; due: string; amount: string; status: string; type: string };
 export type TaskItem = { id: string; title: string; owner: string; due: string; status: "To do" | "In progress" | "Done" | "Waiting"; source: string; priority: string; attachments?: CreateAttachment[] };
-export type EventItem = { id: string; title: string; date: string; start: string; end: string; location: string; meet: boolean; guests: string[]; notes: string; googleId?: string; webLink?: string; attachments?: CreateAttachment[] };
+export type EventItem = { id: string; title: string; date: string; start: string; end: string; location: string; meet: boolean; guests: string[]; notes: string; googleId?: string; webLink?: string; meetLink?: string; attachments?: CreateAttachment[] };
 export type ChatAttachment = { key: string; name: string; type: string; size: number };
 export type ChatReaction = { emoji: string; users: string[] };
 export type ChatMessage = {

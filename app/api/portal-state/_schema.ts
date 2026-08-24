@@ -8,6 +8,11 @@ export type FeatureArea = typeof featureAreas[number];
 const isObject = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value));
 const text = (value: unknown, max = 500) => typeof value === "string" && value.length <= max;
 const idRecord = (value: unknown) => isObject(value) && text(value.id, 160) && Boolean(value.id);
+const validMeetLink = (value: unknown) => {
+  if (value === undefined || value === "") return true;
+  if (!text(value, 2_000)) return false;
+  try { const url = new URL(String(value)); return url.protocol === "https:" && url.hostname === "meet.google.com"; } catch { return false; }
+};
 
 function safeTree(value: unknown, depth = 0): boolean {
   if (depth > 12) return false;
@@ -35,7 +40,7 @@ function validConversation(value: unknown) {
 const validators: Partial<Record<(typeof portalArrayFields)[number], (value: unknown) => boolean>> = {
   employees: value => isObject(value) && idRecord(value) && text(value.googleId, 160) && text(value.name, 300) && text(value.email, 320) && String(value.email).includes("@") && ["Active", "Suspended"].includes(String(value.status)),
   tasks: value => isObject(value) && idRecord(value) && text(value.title, 500) && ["To do", "In progress", "Done", "Waiting"].includes(String(value.status)),
-  events: value => isObject(value) && idRecord(value) && text(value.title, 500) && /^\d{4}-\d{2}-\d{2}$/.test(String(value.date || "")) && text(value.start, 20) && text(value.end, 20),
+  events: value => isObject(value) && idRecord(value) && text(value.title, 500) && /^\d{4}-\d{2}-\d{2}$/.test(String(value.date || "")) && text(value.start, 20) && text(value.end, 20) && validMeetLink(value.meetLink),
   conversations: validConversation,
   documents: value => isObject(value) && idRecord(value) && text(value.name, 500) && text(value.type, 120),
   articles: value => isObject(value) && idRecord(value) && text(value.title, 500) && text(value.summary, 5_000),

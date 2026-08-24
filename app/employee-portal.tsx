@@ -1139,6 +1139,7 @@ function CalendarPage({
           ),
           notes: item.description || "",
           webLink: item.htmlLink || item.hangoutLink,
+          meetLink: item.hangoutLink,
         } as EventItem;
       });
       updateState((current) => ({
@@ -1419,12 +1420,17 @@ function CalendarPage({
             <button className="secondary" onClick={beginEdit}>
               Edit
             </button>
+            {selected.meetLink && (
+              <a className="primary meet-button" href={selected.meetLink} target="_blank" rel="noreferrer noopener">
+                Join Google Meet
+              </a>
+            )}
             {selected.webLink && (
               <a
                 className="primary"
                 href={selected.webLink}
                 target="_blank"
-                rel="noreferrer"
+                rel="noreferrer noopener"
               >
                 Open in Google
               </a>

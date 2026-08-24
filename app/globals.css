@@ -4830,6 +4830,8 @@ p {
 .calendar-description a { color: var(--blue-dark); font-weight: 650; }
 .calendar-description blockquote { border-left: 3px solid var(--line); color: var(--muted); margin: 10px 0; padding-left: 12px; }
 .calendar-description pre { background: var(--soft); border-radius: 8px; overflow-x: auto; padding: 10px; white-space: pre-wrap; }
+.meet-button { background: #0b8043; border-color: #0b8043; }
+.meet-button:hover { background: #086b37; }
 
 @keyframes surface-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } }
 @keyframes panel-enter { from { opacity: 0; transform: translateX(18px); } }

@@ -663,6 +663,7 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
               guests: people.split(",").map(value => value.trim()).filter(Boolean),
               notes: details,
               webLink: googleEvent?.htmlLink || googleEvent?.hangoutLink,
+              meetLink: googleEvent?.hangoutLink,
               attachments,
             },
             ...current.events,
