@@ -8,6 +8,8 @@ test("notifications support useful sections, preferences, deep links and undo", 
   const [portal, data] = await Promise.all([read("app/portal.tsx"), read("app/portal-data.ts")]);
   for (const marker of ["Today", "Earlier", "Snoozed", "actionRequiredOnly", "mutedNotificationGroups", "Undo mark all read", "targetPage", "targetId", "actorEmail"]) assert.ok(`${portal}\n${data}`.includes(marker), marker);
   assert.match(portal, /item\.actorEmail\?\.toLowerCase\(\) !== state\.profile\.email\.toLowerCase\(\)/u);
+  const employee = await read("app/employee-portal.tsx");
+  assert.match(employee, /new URLSearchParams\(window\.location\.search\)\.get\("record"\)/u);
 });
 
 test("quick create recovers drafts and accelerates repeated forms", async () => {

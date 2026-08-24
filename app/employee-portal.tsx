@@ -546,6 +546,13 @@ function localDateKey(value: Date) {
 function ActionInbox({ state, updateState, notify }: EmployeeProps) {
   const [filter, setFilter] = useState("Pending");
   const [selected, setSelected] = useState<string | null>(null);
+  useEffect(() => {
+    const record = new URLSearchParams(window.location.search).get("record");
+    if (record && state.approvals.some(item => item.id === record)) {
+      const routeTimer = window.setTimeout(() => setSelected(record), 0);
+      return () => window.clearTimeout(routeTimer);
+    }
+  }, [state.approvals]);
   const items =
     filter === "All"
       ? state.approvals
@@ -774,6 +781,13 @@ function RequestsPage({
 }: EmployeeProps) {
   const [filter, setFilter] = useState("All");
   const [selected, setSelected] = useState<string | null>(null);
+  useEffect(() => {
+    const record = new URLSearchParams(window.location.search).get("record");
+    if (record && state.requests.some(item => item.id === record)) {
+      const routeTimer = window.setTimeout(() => setSelected(record), 0);
+      return () => window.clearTimeout(routeTimer);
+    }
+  }, [state.requests]);
   const values =
     filter === "All"
       ? state.requests
@@ -965,6 +979,14 @@ function CalendarPage({
   const [anchor, setAnchor] = useState(() => new Date());
   const [editTitle, setEditTitle] = useState("");
   const [editDate, setEditDate] = useState("");
+  useEffect(() => {
+    const record = new URLSearchParams(window.location.search).get("record");
+    const event = state.events.find(item => item.id === record);
+    if (event) {
+      const routeTimer = window.setTimeout(() => setSelected(event), 0);
+      return () => window.clearTimeout(routeTimer);
+    }
+  }, [state.events]);
   const [editStart, setEditStart] = useState("");
   const [editEnd, setEditEnd] = useState("");
 
@@ -2096,6 +2118,13 @@ function ChatPage({
     (item) => item.type === "Direct",
   );
   const [activeId, setActiveId] = useState(conversations[0]?.id || "");
+  useEffect(() => {
+    const record = new URLSearchParams(window.location.search).get("record");
+    if (record && conversations.some(item => item.id === record)) {
+      const routeTimer = window.setTimeout(() => setActiveId(record), 0);
+      return () => window.clearTimeout(routeTimer);
+    }
+  }, [conversations]);
   const [message, setMessage] = useState("");
   const [conversationQuery, setConversationQuery] = useState("");
   const [messageQuery, setMessageQuery] = useState("");

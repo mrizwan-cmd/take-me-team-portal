@@ -47,10 +47,19 @@ export default function ProjectsPortal({ state, updateState, notify }: Props) {
   };
 
   useEffect(() => {
-    const requestedBoard = new URLSearchParams(window.location.search).get("board");
+    const params = new URLSearchParams(window.location.search);
+    const requestedBoard = params.get("board");
+    const requestedCard = params.get("record");
     if (requestedBoard && state.projectBoards.some(item => item.id === requestedBoard && !item.archived)) {
       const routeTimer = window.setTimeout(() => setBoardId(requestedBoard), 0);
       return () => window.clearTimeout(routeTimer);
+    }
+    if (requestedCard) {
+      const owningBoard = state.projectBoards.find(item => item.cards.some(card => card.id === requestedCard && !card.archived));
+      if (owningBoard) {
+        const routeTimer = window.setTimeout(() => { setBoardId(owningBoard.id); setSelectedCard(requestedCard); }, 0);
+        return () => window.clearTimeout(routeTimer);
+      }
     }
   }, [state.projectBoards]);
 
