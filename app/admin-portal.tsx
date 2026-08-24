@@ -105,9 +105,8 @@ function AdminOverview({ state, navigate, notify }: AdminProps) {
         <section className="card">
           <div className="card-head">
             <h3>Usage this month</h3>
-            <button disabled title="Connect an analytics provider to enable exports">Export unavailable</button>
           </div>
-          <p className="prototype-note">No analytics provider is connected. Live usage figures will appear here after configuration.</p>
+          <p className="prototype-note">Usage analytics is listed under Planned integrations until a provider is connected.</p>
         </section>
       </div>
     </div>
@@ -403,10 +402,7 @@ function NotificationSettings({ state, updateState }: AdminProps) {
           <Toggle title="Google Chat announcements" description="Post urgent company messages to Google Chat spaces." checked={state.adminSettings.urgentGoogleChat} onChange={value => setting(updateState, "urgentGoogleChat", value)} />
           <p className="autosave-note">Available channel settings save automatically.</p>
         </SettingCard>
-        <SettingCard title="Send company broadcast" description="Send an immediate notice to every employee.">
-          <p className="prototype-note">Broadcast delivery is unavailable until a notification provider and delivery audit are configured.</p>
-          <div className="card-actions"><button className="primary" disabled>Broadcast unavailable</button></div>
-        </SettingCard>
+        <PlannedIntegrations items={[["Company broadcasts", "Notification provider and delivery audit"], ["Notification analytics", "Delivery, read and action reporting"]]} />
       </div>
     </AdminPage>
   );
@@ -414,7 +410,6 @@ function NotificationSettings({ state, updateState }: AdminProps) {
 
 function Integrations({ state, updateState, notify, realtime }: AdminProps) {
   const [tab, setTab] = useState("Google Workspace");
-  const [connector, setConnector] = useState("");
   const [clientId, setClientId] = useState(state.adminSettings.googleClientId);
   const [clientSecret, setClientSecret] = useState("");
   const [googleStatus, setGoogleStatus] = useState<{ connected: boolean; configured: boolean; loginConfigured: boolean; missing: string[]; missingLogin: string[] } | null>(null);
@@ -590,18 +585,12 @@ function Integrations({ state, updateState, notify, realtime }: AdminProps) {
       )}
       {tab === "Communication" && (
         <div className="settings-columns">
-          <SettingCard title="Google Chat" description="Portal notifications and request updates." badge="Connector required">
-            <p className="prototype-note">Google Chat approval notifications are unavailable until the connector is configured.</p>
-            <Toggle title="Urgent notices" description="Post important announcements and service updates." checked={google.urgentGoogleChat} onChange={value => setting(updateState, "urgentGoogleChat", value)} />
+          <SettingCard title="Communication preferences" description="Prepare channel behavior before connectors are enabled.">
+            <Toggle title="Urgent Google Chat notices" description="Use this preference when the Google Chat connector becomes active." checked={google.urgentGoogleChat} onChange={value => setting(updateState, "urgentGoogleChat", value)} />
+            <Toggle title="Daily approval summary" description="Use this preference when the Gmail connector becomes active." checked={google.dailyDigest} onChange={value => setting(updateState, "dailyDigest", value)} />
             <Field label="Default Google Chat space" value={google.chatSpace} onChange={value => setting(updateState, "chatSpace", value)} />
           </SettingCard>
-          <SettingCard title="Email through Gmail" description="Status updates, digests and reminders.">
-            <Toggle title="Daily approval summary" description="Send managers their pending decisions." checked={google.dailyDigest} onChange={value => setting(updateState, "dailyDigest", value)} />
-            <p className="prototype-note">Gmail request-status delivery is unavailable until a mail connector is configured.</p>
-            <div className="card-actions">
-              <button className="secondary" disabled title="Connect Gmail delivery to send a test">Send test unavailable</button>
-            </div>
-          </SettingCard>
+          <PlannedIntegrations items={[["Google Chat delivery", "Approval updates and urgent announcements"], ["Gmail delivery", "Digests, reminders and status updates"], ["Delivery audit", "Receipts, failures and retry history"]]} />
         </div>
       )}
       {tab === "Communication" && (
@@ -624,24 +613,8 @@ function Integrations({ state, updateState, notify, realtime }: AdminProps) {
         </div>
       )}
       {tab === "Business tools" && (
-        <div className="connector-grid">
-          {[
-            ["Project tracking", "Milestones and roadmap reporting", "projects"],
-            ["Accounting & expenses", "Suppliers, cost centres and expenses", "requests"],
-            ["CRM", "Customer and account information", "people"],
-            ["HR & payroll", "Leave balances and employee records", "leave"]
-          ].map(item => (
-            <section className="card connector-card" key={item[0]}>
-              <i><SvgIcon name={item[2]} size={20} /></i>
-              <h3>{item[0]}</h3>
-              <p>{item[1]}</p>
-              <StatusPill value="Not connected" />
-              <button className="secondary" onClick={() => setConnector(item[0])}>Configure</button>
-            </section>
-          ))}
-        </div>
+        <PlannedIntegrations items={[["Project tracking", "Milestones and roadmap reporting"], ["Accounting and expenses", "Suppliers, cost centres and expenses"], ["CRM", "Customer and account information"], ["HR and payroll", "Leave balances and employee records"]]} />
       )}
-      {connector && <AdminEditor title={`Configure ${connector}`} close={() => setConnector("")} notify={notify} fields={["API endpoint", "API key", "Webhook secret", "Sync frequency"]} />}
     </AdminPage>
   );
 }
@@ -670,7 +643,7 @@ function AuditLog({ state }: AdminProps) {
       <section className="card data-card">
         <div className="card-head padded">
           <h3>Recent activity ({state.audit.length} entries)</h3>
-          <button disabled title="Audit export is not connected">Export unavailable</button>
+          <span className="planned-label">Export is in Planned integrations</span>
         </div>
         <div className="data-head audit-head">
           <span>Actor</span>
@@ -700,14 +673,22 @@ function AdminPage({ title, text, children, autosave = false }: { title: string;
   );
 }
 
+function PlannedIntegrations({ items }: { items: Array<[string, string]> }) {
+  return (
+    <SettingCard title="Planned integrations" description="Future services are grouped here so unfinished controls do not interrupt active settings." badge={`${items.length} planned`}>
+      <div className="planned-integrations-list">
+        {items.map(([title, detail]) => <div key={title}><span><b>{title}</b><small>{detail}</small></span><StatusPill value="Planned" /></div>)}
+      </div>
+    </SettingCard>
+  );
+}
+
 function AdminEditor({ title, close }: { title: string; fields: string[]; close: () => void; notify: Notify }) {
   return (
     <Modal title={title} eyebrow="CONFIGURATION" close={close} className="medium-modal">
       <div className="create-form">
-        <p className="prototype-note">{title} is sample configuration. Editing is unavailable until its dedicated service is connected.</p>
-        <div className="modal-actions">
-          <button className="secondary" onClick={close}>Close</button>
-        </div>
+        <p className="prototype-note">This configuration becomes available when its dedicated service is connected.</p>
+        <div className="modal-actions"><button className="secondary" onClick={close}>Close</button></div>
       </div>
     </Modal>
   );

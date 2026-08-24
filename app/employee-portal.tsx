@@ -3444,6 +3444,7 @@ function LeavePage({ state, openCreate }: EmployeeProps) {
         .toLowerCase()
         .includes(leaveQuery.toLowerCase()),
   );
+  const delegate = state.employees.find(employee => employee.email === state.profile.delegateEmail);
 
   return (
     <div className="page">
@@ -3457,6 +3458,12 @@ function LeavePage({ state, openCreate }: EmployeeProps) {
           </button>
         }
       />
+      {state.profile.awayUntil && (
+        <section className="card delegation-banner">
+          <div><b>Away until {state.profile.awayUntil}</b><p>{delegate ? `${delegate.name} is covering your selected responsibilities.` : "No delegate has been selected."}</p></div>
+          <StatusPill value={delegate ? "Delegated" : "Needs attention"} />
+        </section>
+      )}
       <div className="segmented">
         {["Leave balance & requests", "Team absence calendar"].map((value) => (
           <button

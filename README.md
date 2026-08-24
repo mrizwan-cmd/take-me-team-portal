@@ -28,6 +28,13 @@ The latest hardening pass added participant-scoped direct-message realtime deliv
 | Administration | Feature controls, role configuration, integrations, branding, communication settings, and system health |
 | Google Workspace | Company login plus separately authorized Calendar and Drive access |
 
+### Everyday quality-of-life features
+
+- Notifications are grouped into Today, Earlier, and Snoozed, with priority labels, action-only filtering, category mutes, deep links, digest preferences, and Undo after marking everything read.
+- Quick Create restores unfinished drafts, validates fields inline, suggests useful dates, remembers recent colleagues, accepts drag-and-drop attachments, and can remain open for repeated entry.
+- Employees can set an away-until date, choose a delegate, and select coverage for approvals, projects, request responses, and urgent notifications; current coverage appears in the profile and Leave area.
+- Admin pages keep working controls prominent and group future connectors under Planned integrations instead of presenting disabled dead ends.
+
 ## Experience and design
 
 - Official Take Me branding and primary colour

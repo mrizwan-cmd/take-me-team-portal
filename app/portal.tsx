@@ -6,7 +6,7 @@ import AdminPortal from "./admin-portal";
 import EmployeePortal from "./employee-portal";
 import LoginScreen from "./login-screen";
 import { HelpCentre, OnboardingGuide } from "./onboarding";
-import { addDays, formatDateTime, localDateInput, makeId, type FeatureKey, type PortalState, type RequestItem } from "./portal-data";
+import { addDays, formatDateTime, localDateInput, makeId, type CreateAttachment, type FeatureKey, type PortalState, type RequestItem } from "./portal-data";
 import { Modal, SvgIcon, Toggle } from "./portal-ui";
 import { usePortalState } from "./use-portal-state";
 
@@ -211,7 +211,7 @@ export default function Portal() {
             <i>{state.profile.name.split(" ").map(part => part[0]).slice(0, 2).join("")}</i>
             <div>
               <b>{state.profile.name}</b>
-              <small>{state.profile.jobTitle || "Profile & preferences"}</small>
+              <small>{state.profile.awayUntil ? `Away until ${state.profile.awayUntil}${state.profile.delegateEmail ? ` · ${state.profile.delegateEmail.split("@")[0]} covering` : ""}` : state.profile.jobTitle || "Profile & preferences"}</small>
             </div>
             <span className="live-dot" title="Live sync" />
           </button>
@@ -494,14 +494,43 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
   const [amount, setAmount] = useState("");
   const [meet, setMeet] = useState(true);
   const [draft, setDraft] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [submitAnother, setSubmitAnother] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const restore = window.setTimeout(() => {
+      try {
+        const saved = JSON.parse(window.localStorage.getItem(`quick-create-draft:${kind}`) || "null") as Record<string, string | boolean> | null;
+        if (saved) {
+          setTitle(String(saved.title || "")); setType(String(saved.type || type)); setDetails(String(saved.details || ""));
+          setDate(String(saved.date || date)); setEndDate(String(saved.endDate || endDate)); setStart(String(saved.start || start));
+          setEnd(String(saved.end || end)); setPeople(String(saved.people || "")); setAmount(String(saved.amount || "")); setMeet(saved.meet !== false);
+          notify("Recovered your unfinished form");
+        }
+      } catch { /* ignore an invalid local draft */ }
+      setDraftLoaded(true);
+    }, 0);
+    return () => window.clearTimeout(restore);
+  // Load once for the selected form kind.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind]);
+
+  useEffect(() => {
+    if (!draftLoaded) return;
+    const timer = window.setTimeout(() => window.localStorage.setItem(`quick-create-draft:${kind}`, JSON.stringify({ title, type, details, date, endDate, start, end, people, amount, meet })), 250);
+    return () => window.clearTimeout(timer);
+  }, [amount, date, details, draftLoaded, end, endDate, kind, meet, people, start, title, type]);
 
   const messageableEmployees = useMemo(
     () => state.employees.filter(employee =>
       employee.email !== state.profile.email
       && employee.status === "Active"
       && Boolean(employee.lastLoginAt),
-    ),
-    [state.employees, state.profile.email],
+    ).sort((first, second) => state.preferences.recentEmployeeEmails.indexOf(second.email) - state.preferences.recentEmployeeEmails.indexOf(first.email)),
+    [state.employees, state.preferences.recentEmployeeEmails, state.profile.email],
   );
   const matchingEmployees = useMemo(() => {
     const query = employeeQuery.trim().toLocaleLowerCase();
@@ -524,7 +553,33 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
     event.preventDefault();
     const selectedEmployee = kind === "conversation" ? state.employees.find(employee => employee.email === people) : undefined;
     const cleanTitle = kind === "conversation" ? selectedEmployee?.name || "" : title.trim();
-    if (!cleanTitle) return;
+    const nextErrors: Record<string, string> = {};
+    if (!cleanTitle) nextErrors.title = kind === "conversation" ? "Choose an employee to continue." : "Enter a clear title.";
+    if ((kind === "event" || kind === "task" || kind === "leave") && !date) nextErrors.date = "Choose a date.";
+    if (kind === "event" && end <= start) nextErrors.time = "End time must be after the start time.";
+    if (kind === "leave" && endDate < date) nextErrors.date = "The end date cannot be before the start date.";
+    if (kind === "request" && type === "Purchase order" && (!amount || Number(amount) <= 0)) nextErrors.amount = "Enter the purchase amount.";
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+
+    let attachments: CreateAttachment[] = [];
+    if (files.length) {
+      setUploading(true);
+      try {
+        attachments = await Promise.all(files.map(async file => {
+          const body = new FormData(); body.set("file", file);
+          const response = await fetch("/api/files", { method: "POST", body });
+          const result = await response.json() as CreateAttachment & { error?: string };
+          if (!response.ok) throw new Error(result.error || `Could not upload ${file.name}`);
+          return { key: result.key, name: result.name, type: result.type, size: result.size };
+        }));
+      } catch (error) {
+        setErrors({ attachments: error instanceof Error ? error.message : "Attachments could not be uploaded." });
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
 
     let googleEvent: { id?: string; htmlLink?: string; hangoutLink?: string } | null = null;
     if (kind === "event") {
@@ -571,6 +626,7 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
             { label: "Manager review", person: "Manager not assigned", time: "Waiting", complete: false },
             { label: "Final confirmation", person: "Portal workflow", time: "Waiting", complete: false },
           ],
+          attachments,
         };
         next = {
           ...current,
@@ -594,6 +650,7 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
               guests: people.split(",").map(value => value.trim()).filter(Boolean),
               notes: details,
               webLink: googleEvent?.htmlLink || googleEvent?.hangoutLink,
+              attachments,
             },
             ...current.events,
           ],
@@ -622,12 +679,18 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
           ],
         };
       }
-      if (kind === "task") next = { ...current, tasks: [{ id: makeId("TASK"), title: cleanTitle, owner: people || current.profile.name, due: date, status: "To do", source: details || "Quick create", priority: type }, ...current.tasks] };
-      if (kind === "leave") next = { ...current, leave: [{ id: makeId("LEAVE"), employee: current.profile.name, type, dates: `${date} to ${endDate}`, days: Math.max(1, Number(amount) || 1), status: draft ? "Draft" : "Pending" }, ...current.leave] };
-      return { ...next, audit: [{ id: makeId("AUD"), actor: current.profile.name, action: `Created ${kind}: ${cleanTitle}`, area: kind, time: formatDateTime() }, ...next.audit] };
+      if (kind === "task") next = { ...current, tasks: [{ id: makeId("TASK"), title: cleanTitle, owner: people || current.profile.name, due: date, status: "To do", source: details || "Quick create", priority: type, attachments }, ...current.tasks] };
+      if (kind === "leave") next = { ...current, leave: [{ id: makeId("LEAVE"), employee: current.profile.name, type, dates: `${date} to ${endDate}`, days: Math.max(1, Number(amount) || 1), status: draft ? "Draft" : "Pending", delegateEmail: current.profile.delegateEmail }, ...current.leave] };
+      const recentEmail = kind === "conversation" ? people : people.split(",")[0]?.trim();
+      return { ...next, preferences: recentEmail?.includes("@") ? { ...next.preferences, recentEmployeeEmails: [recentEmail, ...next.preferences.recentEmployeeEmails.filter(email => email !== recentEmail)].slice(0, 5) } : next.preferences, audit: [{ id: makeId("AUD"), actor: current.profile.name, action: `Created ${kind}: ${cleanTitle}`, area: kind, time: formatDateTime() }, ...next.audit] };
     });
+    window.localStorage.removeItem(`quick-create-draft:${kind}`);
     notify(draft ? "Draft saved" : `${labels[kind]?.[0] || "Item"} created`);
-    close();
+    if (submitAnother) {
+      setTitle(""); setDetails(""); setAmount(""); setPeople(""); setEmployeeQuery(""); setFiles([]); setErrors({});
+      setDate(localDateInput(kind === "task" ? addDays(new Date(), 1) : new Date()));
+      notify("Ready for another item");
+    } else close();
   };
 
   return (
@@ -681,11 +744,13 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
                   : "No other employees have signed in yet."}
             </small>
             <small>Tap a colleague to select them. Only active employees who have signed in are shown.</small>
+            {errors.title && <small className="field-error" role="alert">{errors.title}</small>}
           </div>
         ) : (
           <label>
             Title
             <input data-initial-focus required value={title} onChange={event => setTitle(event.target.value)} placeholder="Enter a clear title" />
+            {errors.title && <small className="field-error" role="alert">{errors.title}</small>}
           </label>
         )}
         {(kind === "request" || kind === "leave" || kind === "task") && (
@@ -706,6 +771,12 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
             <label>
               {kind === "task" ? "Due date" : "Date"}
               <input type="date" value={date} onChange={event => setDate(event.target.value)} />
+              <div className="date-suggestions">
+                <button type="button" onClick={() => setDate(localDateInput(new Date()))}>Today</button>
+                <button type="button" onClick={() => setDate(localDateInput(addDays(new Date(), 1)))}>Tomorrow</button>
+                <button type="button" onClick={() => setDate(localDateInput(addDays(new Date(), 7)))}>Next week</button>
+              </div>
+              {errors.date && <small className="field-error" role="alert">{errors.date}</small>}
             </label>
             {kind === "event" && (
               <>
@@ -718,16 +789,19 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
             )}
           </div>
         )}
+        {errors.time && <small className="field-error" role="alert">{errors.time}</small>}
         {(kind === "request" || kind === "leave") && (
           <label>
             {kind === "leave" ? "Number of days" : "Amount, if applicable"}
             <input inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} placeholder={kind === "leave" ? "1" : "0.00"} />
+            {errors.amount && <small className="field-error" role="alert">{errors.amount}</small>}
           </label>
         )}
         {(kind === "event" || kind === "task") && (
           <label>
             {kind === "task" ? "Assign to" : "Guests"}
             <input value={people} onChange={event => setPeople(event.target.value)} placeholder="Names or @takeme.taxi addresses, separated by commas" />
+            {!!state.preferences.recentEmployeeEmails.length && <small>Recent: {state.preferences.recentEmployeeEmails.slice(0, 3).map(email => <button type="button" className="inline-choice" key={email} onClick={() => setPeople(email)}>{email.split("@")[0]}</button>)}</small>}
           </label>
         )}
         <label>
@@ -739,14 +813,26 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
             <input type="checkbox" checked={meet} onChange={event => setMeet(event.target.checked)} /> Add Google Meet video call
           </label>
         )}
+        {kind !== "conversation" && (
+          <div className="attachment-dropzone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); setFiles(current => [...current, ...Array.from(event.dataTransfer.files)].slice(0, 6)); }}>
+            <b>Attachments</b>
+            <span>Drag files here or choose up to six files.</span>
+            <input type="file" multiple onChange={event => setFiles(current => [...current, ...Array.from(event.target.files || [])].slice(0, 6))} />
+            {!!files.length && <ul>{files.map((file, index) => <li key={`${file.name}-${index}`}>{file.name}<button type="button" aria-label={`Remove ${file.name}`} onClick={() => setFiles(current => current.filter((_, itemIndex) => itemIndex !== index))}>×</button></li>)}</ul>}
+            {errors.attachments && <small className="field-error" role="alert">{errors.attachments}</small>}
+          </div>
+        )}
         {kind === "request" && (
           <label className="check-row">
             <input type="checkbox" checked={draft} onChange={event => setDraft(event.target.checked)} /> Save as draft
           </label>
         )}
+        <label className="check-row">
+          <input type="checkbox" checked={submitAnother} onChange={event => setSubmitAnother(event.target.checked)} /> Create another after saving
+        </label>
         <div className="modal-actions">
           <button type="button" className="secondary" onClick={close}>Cancel</button>
-          <button type="submit" className="primary" disabled={kind === "conversation" && !people}>{draft ? "Save draft" : kind === "conversation" ? "Start chat" : `Create ${kind}`}</button>
+          <button type="submit" className="primary" disabled={uploading || (kind === "conversation" && !people)} title={kind === "conversation" && !people ? "Select an active employee first" : uploading ? "Wait for attachments to finish uploading" : ""}>{uploading ? "Uploading…" : draft ? "Save draft" : kind === "conversation" ? "Start chat" : `Create ${kind}`}</button>
         </div>
       </form>
     </Modal>
@@ -755,19 +841,52 @@ function CreateForm({ kind, state, updateState, close, notify, back }: { kind: s
 
 function UtilityPanel({ type, state, updateState, close, navigate, notify, restartTour, isAdmin }: { type: "notifications" | "help"; state: PortalState; updateState: (updater: (current: PortalState) => PortalState) => void; close: () => void; navigate: (page: string) => void; notify: (message: string) => void; restartTour: () => void; isAdmin: boolean }) {
   const [group, setGroup] = useState("All");
+  const [showSettings, setShowSettings] = useState(false);
+  const [undoReadIds, setUndoReadIds] = useState<string[]>([]);
   const groups = ["All", ...Array.from(new Set(state.notifications.map(item => item.group)))];
-  const notifications = state.notifications.filter(item => !item.snoozed && (group === "All" || item.group === group));
   const destination: Record<string, string> = { Approvals: "Action inbox", Calendar: "Calendar", Leave: "Leave", Requests: "Requests" };
 
   if (type === "help") return <HelpCentre close={close} restartTour={restartTour} navigate={navigate} isAdmin={isAdmin} />;
+
+  const visible = state.notifications.filter(item =>
+    item.actorEmail?.toLowerCase() !== state.profile.email.toLowerCase()
+    && !state.preferences.mutedNotificationGroups.includes(item.group)
+    && (!state.preferences.actionRequiredOnly || item.actionRequired)
+    && (group === "All" || item.group === group),
+  );
+  const todayKey = localDateInput(new Date());
+  const sections = [
+    ["Today", visible.filter(item => !item.snoozed && (!item.createdAt || item.createdAt.slice(0, 10) === todayKey))],
+    ["Earlier", visible.filter(item => !item.snoozed && Boolean(item.createdAt) && item.createdAt?.slice(0, 10) !== todayKey)],
+    ["Snoozed", visible.filter(item => item.snoozed)],
+  ] as const;
+  const openNotification = (item: typeof state.notifications[number]) => {
+    updateState(current => ({ ...current, notifications: current.notifications.map(value => value.id === item.id ? { ...value, read: true, snoozed: false } : value) }));
+    const page = item.targetPage || destination[item.group] || "Home";
+    navigate(page);
+    if (item.targetId) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("record", item.targetId);
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}`);
+    }
+    close();
+  };
+  const markAllRead = () => {
+    const ids = visible.filter(item => !item.read).map(item => item.id);
+    if (!ids.length) return;
+    setUndoReadIds(ids);
+    updateState(current => ({ ...current, notifications: current.notifications.map(item => ids.includes(item.id) ? { ...item, read: true } : item) }));
+    notify("All visible notifications marked read — Undo is available");
+  };
 
   return (
     <div className="utility-panel notification-panel" role="dialog" aria-label="Notifications">
       <header>
         <div>
           <h2>Notifications</h2>
-          <small>{state.notifications.filter(item => !item.read).length} unread</small>
+          <small>{visible.filter(item => !item.read).length} unread</small>
         </div>
+        <button aria-label="Notification preferences" title="Notification preferences" onClick={() => setShowSettings(value => !value)}><SvgIcon name="settings" size={15} /></button>
         <button aria-label="Close notifications" onClick={close}>×</button>
       </header>
       <div className="notification-groups">
@@ -775,21 +894,39 @@ function UtilityPanel({ type, state, updateState, close, navigate, notify, resta
           <button className={group === value ? "active" : ""} key={value} onClick={() => setGroup(value)}>{value}</button>
         ))}
       </div>
+      {showSettings && (
+        <section className="notification-settings-inline">
+          <Toggle title="Action required only" description="Hide informational updates from this panel." checked={state.preferences.actionRequiredOnly} onChange={value => updateState(current => ({ ...current, preferences: { ...current.preferences, actionRequiredOnly: value } }))} />
+          <p>Mute categories</p>
+          <div className="notification-groups">
+            {groups.filter(value => value !== "All").map(value => {
+              const muted = state.preferences.mutedNotificationGroups.includes(value);
+              return <button className={muted ? "muted" : "active"} key={value} onClick={() => updateState(current => ({ ...current, preferences: { ...current.preferences, mutedNotificationGroups: muted ? current.preferences.mutedNotificationGroups.filter(item => item !== value) : [...current.preferences.mutedNotificationGroups, value] } }))}>{muted ? `Unmute ${value}` : `Mute ${value}`}</button>;
+            })}
+          </div>
+        </section>
+      )}
       <div className="notification-list">
-        {notifications.map(item => (
-          <article className={item.read ? "read" : ""} key={item.id}>
-            <button className="notification-main" onClick={() => { updateState(current => ({ ...current, notifications: current.notifications.map(value => value.id === item.id ? { ...value, read: true } : value) })); navigate(destination[item.group] || "Home"); close(); }}>
-              <i><SvgIcon name="bell" size={12} /></i>
-              <span><b>{item.title}</b><small>{item.detail} · {item.time}</small></span>
-            </button>
-            <button className="snooze" aria-label={`Snooze ${item.title}`} title="Snooze" onClick={() => { updateState(current => ({ ...current, notifications: current.notifications.map(value => value.id === item.id ? { ...value, snoozed: true } : value) })); notify("Notification snoozed"); }}>
-              <SvgIcon name="clock" size={14} />
-            </button>
-          </article>
-        ))}
+        {sections.map(([section, items]) => items.length ? (
+          <section className="notification-section" key={section}>
+            <h3>{section}<span>{items.length}</span></h3>
+            {items.map(item => (
+              <article className={`${item.read ? "read" : ""} priority-${(item.priority || "Normal").toLowerCase()}`} key={item.id}>
+                <button className="notification-main" onClick={() => openNotification(item)}>
+                  <i><SvgIcon name={item.actionRequired ? "check" : "bell"} size={12} /></i>
+                  <span><b>{item.title}</b><small>{item.detail} · {item.time}</small><em>{item.priority || "Normal"}{item.actionRequired ? " · Action required" : ""}</em></span>
+                </button>
+                <button className="snooze" aria-label={`${item.snoozed ? "Restore" : "Snooze"} ${item.title}`} title={item.snoozed ? "Restore" : "Snooze"} onClick={() => { updateState(current => ({ ...current, notifications: current.notifications.map(value => value.id === item.id ? { ...value, snoozed: !value.snoozed } : value) })); notify(item.snoozed ? "Notification restored" : "Notification snoozed"); }}>
+                  <SvgIcon name="clock" size={14} />
+                </button>
+              </article>
+            ))}
+          </section>
+        ) : null)}
+        {!visible.length && <p className="widget-empty">No notifications match your preferences.</p>}
       </div>
       <footer>
-        <button className="text-button" onClick={() => { updateState(current => ({ ...current, notifications: current.notifications.map(item => ({ ...item, read: true })) })); notify("All notifications marked read"); }}>Mark all as read</button>
+        {undoReadIds.length ? <button className="text-button" onClick={() => { updateState(current => ({ ...current, notifications: current.notifications.map(item => undoReadIds.includes(item.id) ? { ...item, read: false } : item) })); setUndoReadIds([]); notify("Unread notifications restored"); }}>Undo mark all read</button> : <button className="text-button" onClick={markAllRead}>Mark all as read</button>}
       </footer>
     </div>
   );
@@ -800,13 +937,19 @@ function ProfileSettings({ state, updateState, close, notify, installPrompt, set
   const [jobTitle, setJobTitle] = useState(state.profile.jobTitle);
   const [phone, setPhone] = useState(state.profile.phone);
   const [timezone, setTimezone] = useState(state.profile.timezone);
+  const [awayUntil, setAwayUntil] = useState(state.profile.awayUntil);
+  const [delegateEmail, setDelegateEmail] = useState(state.profile.delegateEmail);
+  const [delegateApprovals, setDelegateApprovals] = useState(state.profile.delegateApprovals);
+  const [delegateProjects, setDelegateProjects] = useState(state.profile.delegateProjects);
+  const [delegateRequests, setDelegateRequests] = useState(state.profile.delegateRequests);
+  const [delegateUrgentNotifications, setDelegateUrgentNotifications] = useState(state.profile.delegateUrgentNotifications);
   const [preferences, setPreferences] = useState(state.preferences);
 
   const save = (event: React.FormEvent) => {
     event.preventDefault();
     updateState(current => ({
       ...current,
-      profile: { ...current.profile, name: name.trim() || current.profile.name, jobTitle: jobTitle.trim(), phone: phone.trim(), timezone },
+      profile: { ...current.profile, name: name.trim() || current.profile.name, jobTitle: jobTitle.trim(), phone: phone.trim(), timezone, awayUntil, delegateEmail: awayUntil ? delegateEmail : "", delegateApprovals, delegateProjects, delegateRequests, delegateUrgentNotifications },
       preferences,
     }));
     notify("Profile preferences saved");
@@ -868,7 +1011,23 @@ function ProfileSettings({ state, updateState, close, notify, installPrompt, set
           <div className="pref-grid">
             <Toggle title="Email notifications" description="Receive email summaries of approvals" checked={preferences.emailNotifications} onChange={value => setPreferences(current => ({ ...current, emailNotifications: value }))} />
             <Toggle title="Browser alerts" description="Show notifications for urgent updates" checked={preferences.browserNotifications} onChange={value => setPreferences(current => ({ ...current, browserNotifications: value }))} />
-            <Toggle title="Weekly digest" description="Weekly recap of announcements and team highlights" checked={preferences.weeklyDigest} onChange={value => setPreferences(current => ({ ...current, weeklyDigest: value }))} />
+            <Toggle title="Action required only" description="Show only notifications that need your response" checked={preferences.actionRequiredOnly} onChange={value => setPreferences(current => ({ ...current, actionRequiredOnly: value }))} />
+          </div>
+          <label>Digest frequency<select value={preferences.digestFrequency} onChange={event => setPreferences(current => ({ ...current, digestFrequency: event.target.value as "none" | "daily" | "weekly", weeklyDigest: event.target.value === "weekly" }))}><option value="none">No digest</option><option value="daily">Daily digest</option><option value="weekly">Weekly digest</option></select></label>
+        </section>
+
+        <section className="pref-section delegation-settings">
+          <h3>Absence and delegation</h3>
+          <p className="pref-desc">Set an away date and nominate one active colleague to cover selected work.</p>
+          <div className="form-grid">
+            <label>Away until<input type="date" min={localDateInput(new Date())} value={awayUntil} onChange={event => setAwayUntil(event.target.value)} /></label>
+            <label>Delegate<select value={delegateEmail} disabled={!awayUntil} onChange={event => setDelegateEmail(event.target.value)}><option value="">Choose a colleague</option>{state.employees.filter(employee => employee.status === "Active" && employee.email !== state.profile.email).map(employee => <option value={employee.email} key={employee.email}>{employee.name}</option>)}</select><small>{awayUntil ? "Your delegate is shown beside your profile while you are away." : "Choose an away date to enable delegation."}</small></label>
+          </div>
+          <div className="pref-grid">
+            <Toggle title="Approvals" description="Route pending decisions to your delegate" checked={delegateApprovals} onChange={setDelegateApprovals} />
+            <Toggle title="Project ownership" description="Show your delegate on assigned projects" checked={delegateProjects} onChange={setDelegateProjects} />
+            <Toggle title="Request responses" description="Let your delegate respond to request follow-ups" checked={delegateRequests} onChange={setDelegateRequests} />
+            <Toggle title="Urgent notifications" description="Copy urgent action-required alerts to your delegate" checked={delegateUrgentNotifications} onChange={setDelegateUrgentNotifications} />
           </div>
         </section>
 

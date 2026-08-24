@@ -20,6 +20,12 @@ export type Profile = {
   phone: string;
   timezone: string;
   department: string;
+  awayUntil: string;
+  delegateEmail: string;
+  delegateApprovals: boolean;
+  delegateProjects: boolean;
+  delegateRequests: boolean;
+  delegateUrgentNotifications: boolean;
 };
 
 export type Preferences = {
@@ -30,12 +36,17 @@ export type Preferences = {
   emailNotifications: boolean;
   browserNotifications: boolean;
   weeklyDigest: boolean;
+  digestFrequency: "none" | "daily" | "weekly";
+  actionRequiredOnly: boolean;
+  mutedNotificationGroups: string[];
+  recentEmployeeEmails: string[];
   quietHours: boolean;
   onboardingComplete: boolean;
   onboardingStep: number;
 };
 
 export type TimelineItem = { label: string; person: string; time: string; complete: boolean };
+export type CreateAttachment = { key: string; name: string; type: string; size: number };
 export type RequestItem = {
   id: string;
   title: string;
@@ -48,10 +59,11 @@ export type RequestItem = {
   details: string;
   priority: string;
   timeline: TimelineItem[];
+  attachments?: CreateAttachment[];
 };
 export type Approval = { id: string; requestId: string; title: string; requester: string; due: string; amount: string; status: string; type: string };
-export type TaskItem = { id: string; title: string; owner: string; due: string; status: "To do" | "In progress" | "Done" | "Waiting"; source: string; priority: string };
-export type EventItem = { id: string; title: string; date: string; start: string; end: string; location: string; meet: boolean; guests: string[]; notes: string; googleId?: string; webLink?: string };
+export type TaskItem = { id: string; title: string; owner: string; due: string; status: "To do" | "In progress" | "Done" | "Waiting"; source: string; priority: string; attachments?: CreateAttachment[] };
+export type EventItem = { id: string; title: string; date: string; start: string; end: string; location: string; meet: boolean; guests: string[]; notes: string; googleId?: string; webLink?: string; attachments?: CreateAttachment[] };
 export type ChatAttachment = { key: string; name: string; type: string; size: number };
 export type ChatReaction = { emoji: string; users: string[] };
 export type ChatMessage = {
@@ -76,14 +88,18 @@ export type ChatMessage = {
 export type Conversation = { id: string; name: string; type: "Direct"; members: string[]; messages: ChatMessage[]; unread: number; unreadBy?: string[] };
 export type DocumentItem = { id: string; name: string; type: string; owner: string; updated: string; folder: string; size: string; key?: string; drive?: boolean };
 export type Article = { id: string; title: string; category: string; summary: string; owner: string; reviewed: string; acknowledgement?: boolean; helpful?: number };
-export type LeaveItem = { id: string; employee: string; type: string; dates: string; days: number; status: string };
+export type LeaveItem = { id: string; employee: string; type: string; dates: string; days: number; status: string; delegateEmail?: string };
 export type ShiftItem = { id: string; date: string; time: string; team: string; location: string; status: string };
 export type Driver = { id: string; name: string; licence: string; vehicle: string; status: string; expiry: string };
 export type Vehicle = { id: string; registration: string; model: string; driver: string; status: string; service: string };
 export type Incident = { id: string; title: string; category: string; reported: string; owner: string; status: string; confidential: boolean };
 export type Handover = { id: string; shift: string; author: string; note: string; priority: string; read: boolean };
 export type ServiceStatus = { id: string; name: string; status: "Operational" | "Degraded" | "Maintenance"; note: string; updated: string };
-export type NotificationItem = { id: string; title: string; detail: string; group: string; time: string; read: boolean; snoozed?: boolean };
+export type NotificationItem = {
+  id: string; title: string; detail: string; group: string; time: string; read: boolean;
+  createdAt?: string; priority?: "Low" | "Normal" | "High" | "Urgent"; actionRequired?: boolean;
+  targetPage?: string; targetId?: string; actorEmail?: string; snoozed?: boolean;
+};
 export type AuditItem = { id: string; actor: string; action: string; area: string; time: string };
 export type Employee = {
   id: string;
@@ -232,10 +248,10 @@ export const featureLabels: Record<FeatureKey, [string, string]> = {
 
 const legacySamplePortalState: PortalState = {
   dataMode: "sample",
-  profile: { name: "Muneeb Rizwan", jobTitle: "Product & Operations", email: "muneeb.rizwan@takeme.taxi", phone: "", timezone: "Europe/London", department: "Operations" },
+  profile: { name: "Muneeb Rizwan", jobTitle: "Product & Operations", email: "muneeb.rizwan@takeme.taxi", phone: "", timezone: "Europe/London", department: "Operations", awayUntil: "", delegateEmail: "", delegateApprovals: true, delegateProjects: true, delegateRequests: true, delegateUrgentNotifications: true },
   preferences: {
     theme: "light", textSize: "normal", highContrast: false, reducedMotion: false,
-    emailNotifications: true, browserNotifications: true, weeklyDigest: false, quietHours: false,
+    emailNotifications: true, browserNotifications: true, weeklyDigest: false, digestFrequency: "daily", actionRequiredOnly: false, mutedNotificationGroups: [], recentEmployeeEmails: [], quietHours: false,
     onboardingComplete: false, onboardingStep: 0,
   },
   features: Object.fromEntries(Object.keys(featureLabels).map(key => [key, true])) as FeatureFlags,
@@ -300,9 +316,9 @@ const legacySamplePortalState: PortalState = {
     { id: "STATUS-02", name: "Google Workspace", status: "Operational", note: "Sample status — connect Google Workspace for live results.", updated: "Sample data" },
   ],
   notifications: [
-    { id: "NOT-01", title: "PO-SAMPLE-041 needs your approval", detail: "New design laptops · £8,450", group: "Approvals", time: formatDateTime(addDays(new Date(), 0)), read: false },
-    { id: "NOT-02", title: "Quarterly all-hands starts at 3:00 PM", detail: "Google Meet link is ready", group: "Calendar", time: "2 hours ago", read: false },
-    { id: "NOT-04", title: "Your IT access request was completed", detail: "Figma access for Sam", group: "Requests", time: sampleDisplayDate(-1), read: true },
+    { id: "NOT-01", title: "PO-SAMPLE-041 needs your approval", detail: "New design laptops · £8,450", group: "Approvals", time: formatDateTime(), createdAt: new Date().toISOString(), priority: "Urgent", actionRequired: true, targetPage: "Action inbox", targetId: "APR-041", actorEmail: "daniel.cole@takeme.taxi", read: false },
+    { id: "NOT-02", title: "Quarterly all-hands starts at 3:00 PM", detail: "Google Meet link is ready", group: "Calendar", time: "2 hours ago", createdAt: new Date().toISOString(), priority: "Normal", targetPage: "Calendar", targetId: "EV-01", actorEmail: "sofia.khan@takeme.taxi", read: false },
+    { id: "NOT-04", title: "Your IT access request was completed", detail: "Figma access for Sam", group: "Requests", time: sampleDisplayDate(-1), createdAt: addDays(new Date(), -1).toISOString(), priority: "Low", targetPage: "Requests", targetId: "IT-SAMPLE-223", actorEmail: "sam.wilson@takeme.taxi", read: true },
   ],
   audit: [
     { id: "AUD-01", actor: "Muneeb Rizwan", action: "Updated Google Workspace settings", area: "Integrations", time: formatDateTime(addDays(new Date(), -1)) },
@@ -362,7 +378,7 @@ const legacySamplePortalState: PortalState = {
 export const defaultPortalState: PortalState = {
   ...legacySamplePortalState,
   dataMode: "operational",
-  profile: { name: "Company employee", jobTitle: "", email: "", phone: "", timezone: "Europe/London", department: "" },
+  profile: { name: "Company employee", jobTitle: "", email: "", phone: "", timezone: "Europe/London", department: "", awayUntil: "", delegateEmail: "", delegateApprovals: true, delegateProjects: true, delegateRequests: true, delegateUrgentNotifications: true },
   employees: [],
   requests: [],
   approvals: [],
