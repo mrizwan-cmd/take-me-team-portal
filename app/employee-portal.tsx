@@ -1408,50 +1408,28 @@ function CalendarPage({
               : "PORTAL CALENDAR EVENT"
           }
           close={() => setSelected(null)}
+          className="medium-modal calendar-event-modal"
         >
-          <dl className="detail-list">
-            <div>
-              <dt>Date and time</dt>
-              <dd>
-                {selected.date} · {selected.start}–{selected.end}
-              </dd>
-            </div>
-            <div>
-              <dt>Location</dt>
-              <dd>{selected.location}</dd>
-            </div>
-            <div>
-              <dt>Guests</dt>
-              <dd>{selected.guests.join(", ") || "No guests"}</dd>
-            </div>
-            <div>
-              <dt>Notes</dt>
-              <dd>{selected.notes ? <SafeCalendarDescription value={selected.notes} /> : "No notes"}</dd>
-            </div>
-          </dl>
-          <div className="modal-actions">
-            <button className="secondary" onClick={cancelEvent}>
-              Cancel event
-            </button>
-            <button className="secondary" onClick={beginEdit}>
-              Edit
-            </button>
-            {selected.meetLink && (
-              <a className="primary meet-button" href={selected.meetLink} target="_blank" rel="noreferrer noopener">
-                Join Google Meet
-              </a>
-            )}
-            {selected.webLink && (
-              <a
-                className="primary"
-                href={selected.webLink}
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                Open in Google
-              </a>
-            )}
+          <div className="event-facts">
+            <section><i><SvgIcon name="calendar" size={19} /></i><span><small>When</small><b>{new Date(`${selected.date}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</b><em>{selected.start}–{selected.end}</em></span></section>
+            <section><i><SvgIcon name={selected.meet ? "message" : "clock"} size={19} /></i><span><small>Where</small><b>{selected.location || "No location"}</b><em>{selected.meet ? "Online meeting" : "Calendar event"}</em></span></section>
           </div>
+          <section className="event-attendees">
+            <header><div><small>ATTENDEES</small><b>{selected.guests.length ? `${selected.guests.length} invited` : "No attendees"}</b></div></header>
+            {!!selected.guests.length && <div>{selected.guests.map(email => <span key={email}><i>{email.slice(0, 2).toUpperCase()}</i>{email}</span>)}</div>}
+          </section>
+          <section className="event-agenda">
+            <header><small>EVENT DETAILS</small></header>
+            {selected.notes ? <SafeCalendarDescription value={selected.notes} /> : <p>No description has been added to this event.</p>}
+          </section>
+          <footer className="event-modal-actions">
+            <button className="event-cancel-button" onClick={cancelEvent}>Cancel event</button>
+            <div>
+              <button className="secondary" onClick={beginEdit}>Edit</button>
+              {selected.webLink && <a className="secondary" href={selected.webLink} target="_blank" rel="noreferrer noopener">Open in Calendar</a>}
+              {selected.meetLink && <a className="primary meet-button" href={selected.meetLink} target="_blank" rel="noreferrer noopener">Join Google Meet</a>}
+            </div>
+          </footer>
         </Modal>
       )}
       {selected && editing && (

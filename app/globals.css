@@ -4832,6 +4832,39 @@ p {
 .calendar-description pre { background: var(--soft); border-radius: 8px; overflow-x: auto; padding: 10px; white-space: pre-wrap; }
 .meet-button { background: #0b8043; border-color: #0b8043; }
 .meet-button:hover { background: #086b37; }
+.calendar-event-modal { padding: 30px; }
+.calendar-event-modal > h2 { font-size: 28px; margin-bottom: 22px; }
+.event-facts { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.event-facts > section { align-items: flex-start; background: var(--soft); border: 1px solid color-mix(in srgb, var(--line) 72%, transparent); border-radius: 14px; display: flex; gap: 12px; min-width: 0; padding: 15px; }
+.event-facts > section > i { background: var(--white); border: 1px solid var(--line); border-radius: 10px; color: var(--blue-dark); display: grid; flex: 0 0 38px; height: 38px; place-items: center; }
+.event-facts span { min-width: 0; }
+.event-facts small, .event-facts b, .event-facts em { display: block; }
+.event-facts small { color: var(--muted); font-size: 10px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+.event-facts b { font-size: 13px; line-height: 1.35; margin-top: 3px; }
+.event-facts em { color: var(--muted); font-size: 12px; font-style: normal; margin-top: 2px; }
+.event-attendees, .event-agenda { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 18px; }
+.event-attendees header small, .event-agenda header small { color: var(--muted); display: block; font-size: 10px; font-weight: 800; letter-spacing: .09em; }
+.event-attendees header b { display: block; font-size: 13px; margin-top: 3px; }
+.event-attendees > div { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.event-attendees > div > span { align-items: center; background: var(--soft); border: 1px solid var(--line); border-radius: 999px; display: flex; font-size: 11px; gap: 6px; max-width: 100%; padding: 4px 9px 4px 4px; }
+.event-attendees > div > span > i { background: var(--blue-dark); border-radius: 50%; color: #fff; display: grid; flex: 0 0 24px; font-size: 8px; font-style: normal; font-weight: 800; height: 24px; place-items: center; }
+.event-agenda .calendar-description { font-size: 13px; margin-top: 12px; }
+.event-agenda .calendar-description p > strong:first-child { display: block; font-size: 13px; margin-bottom: 3px; }
+.event-agenda > p { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+.event-modal-actions { align-items: center; border-top: 1px solid var(--line); display: flex; gap: 12px; justify-content: space-between; margin-top: 22px; padding-top: 18px; }
+.event-modal-actions > div { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.event-cancel-button { background: transparent; border: 0; border-radius: 8px; color: var(--red); font-size: 12px; font-weight: 750; min-height: 38px; padding: 0 8px; }
+.event-cancel-button:hover { background: var(--red-bg); }
+
+@media (max-width: 700px) {
+  .calendar-event-modal { padding: 24px 18px 18px; }
+  .calendar-event-modal > h2 { font-size: 24px; }
+  .event-facts { grid-template-columns: 1fr; }
+  .event-modal-actions { align-items: stretch; flex-direction: column-reverse; }
+  .event-modal-actions > div { display: grid; grid-template-columns: 1fr 1fr; }
+  .event-modal-actions .meet-button { grid-column: 1 / -1; grid-row: 1; }
+  .event-cancel-button { align-self: center; }
+}
 
 @keyframes surface-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } }
 @keyframes panel-enter { from { opacity: 0; transform: translateX(18px); } }
